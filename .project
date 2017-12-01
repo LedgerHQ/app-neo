@@ -33,6 +33,11 @@
 	</natures>
 	<linkedResources>
 		<link>
+			<name>blue-secure-sdk</name>
+			<type>2</type>
+			<location>/Users/dps/docker-shared/ledger-nano-s/blue-secure-sdk</location>
+		</link>
+		<link>
 			<name>nanos-secure-sdk</name>
 			<type>2</type>
 			<location>/Users/dps/docker-shared/ledger-nano-s/nanos-secure-sdk</location>
