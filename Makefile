@@ -23,7 +23,7 @@ include $(BOLOS_SDK)/Makefile.defines
 # Main app configuration
 
 APPNAME = "NEO"
-APPVERSION = 1.3.5
+APPVERSION = 1.3.6
 APP_LOAD_PARAMS = --path "44'/888'" --path "44'/1024'" --appFlags 0x240 --apdu $(COMMON_LOAD_PARAMS)
 APP_DELETE_PARAMS =  --apdu $(COMMON_DELETE_PARAMS)
 
@@ -52,8 +52,9 @@ DEFINES += USB_SEGMENT_SIZE=64
 DEFINES += U2F_PROXY_MAGIC=\"NEO\"
 DEFINES += HAVE_IO_U2F
 
-WEBUSB_URL     = www.ledgerwallet.com
-DEFINES       += HAVE_WEBUSB WEBUSB_URL_SIZE_B=$(shell echo -n $(WEBUSB_URL) | wc -c) WEBUSB_URL=$(shell echo -n $(WEBUSB_URL) | sed -e "s/./\\\'\0\\\',/g")
+#WEBUSB_URL     = www.ledgerwallet.com
+#DEFINES       += HAVE_WEBUSB WEBUSB_URL_SIZE_B=$(shell echo -n $(WEBUSB_URL) | wc -c) WEBUSB_URL=$(shell echo -n $(WEBUSB_URL) | sed -e "s/./\\\'\0\\\',/g")
+DEFINES   += HAVE_WEBUSB WEBUSB_URL_SIZE_B=0 WEBUSB_URL=""
 
 ifeq ($(TARGET_NAME),TARGET_NANOX)
 DEFINES   	  += IO_SEPROXYHAL_BUFFER_SIZE_B=300
