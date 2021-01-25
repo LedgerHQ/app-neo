@@ -6,6 +6,7 @@
 
 #include "os.h"
 #include "cx.h"
+#include "ux.h"
 #include <stdbool.h>
 #include "os_io_seproxyhal.h"
 #include "bagl.h"
