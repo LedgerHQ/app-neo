@@ -24,7 +24,7 @@ char timer_desc[MAX_TIMER_TEXT_WIDTH];
 enum UI_STATE uiState;
 
 /** UI state flag */
-#ifdef TARGET_NANOX
+#if defined(TARGET_NANOX) || defined(TARGET_NANOS2)
 #include "ux.h"
 ux_state_t G_ux;
 bolos_ux_params_t G_ux_params;
@@ -103,34 +103,34 @@ static const bagl_element_t *bagl_ui_LEFT_blue_button(const bagl_element_t *e);
 
 
 ////////////////////////////////////  NANO X //////////////////////////////////////////////////
-#ifdef TARGET_NANOX
+#if defined(TARGET_NANOX) || defined(TARGET_NANOS2)
 
 UX_STEP_NOCB(
-    ux_confirm_single_flow_1_step, 
-    pnn, 
+    ux_confirm_single_flow_1_step,
+    pnn,
     {
       &C_icon_eye,
       "Review",
       "Transaction"
     });
 UX_STEP_NOCB(
-    ux_confirm_single_flow_2_step, 
-    bn, 
+    ux_confirm_single_flow_2_step,
+    bn,
     {
       "Type",
       tx_desc[0][1]
     });
 UX_STEP_NOCB(
-    ux_confirm_single_flow_3_step, 
-    bnn, 
+    ux_confirm_single_flow_3_step,
+    bnn,
     {
       "Amount",
       tx_desc[1][0],
       tx_desc[1][1],
     });
 UX_STEP_NOCB(
-    ux_confirm_single_flow_4_step, 
-    bnnn, 
+    ux_confirm_single_flow_4_step,
+    bnnn,
     {
       "Destination Address",
       tx_desc[2][0],
@@ -138,16 +138,16 @@ UX_STEP_NOCB(
       tx_desc[2][2]
     });
 UX_STEP_VALID(
-    ux_confirm_single_flow_5_step, 
+    ux_confirm_single_flow_5_step,
     pb,
-    io_seproxyhal_touch_approve(NULL), 
+    io_seproxyhal_touch_approve(NULL),
     {
       &C_icon_validate_14,
       "Accept",
     });
 UX_STEP_VALID(
-    ux_confirm_single_flow_6_step, 
-    pb, 
+    ux_confirm_single_flow_6_step,
+    pb,
     io_seproxyhal_touch_deny(NULL),
     {
       &C_icon_crossmark,
@@ -165,8 +165,8 @@ UX_FLOW(ux_confirm_single_flow,
 
 
 UX_STEP_NOCB(
-    ux_display_public_flow_step, 
-    bnnn, 
+    ux_display_public_flow_step,
+    bnnn,
     {
       "Address",
       current_public_key[0],
@@ -174,8 +174,8 @@ UX_STEP_NOCB(
       current_public_key[2]
     });
 UX_STEP_VALID(
-    ux_display_public_go_back_step, 
-    pb, 
+    ux_display_public_go_back_step,
+    pb,
     ui_idle(),
     {
       &C_icon_back,
@@ -195,8 +195,8 @@ void display_account_address(){
 }
 
 UX_STEP_NOCB(
-    ux_idle_flow_1_step, 
-    nn, 
+    ux_idle_flow_1_step,
+    nn,
     {
       "Application",
       "is ready",
@@ -211,8 +211,8 @@ UX_STEP_VALID(
 	  "Account"
     });
 UX_STEP_NOCB(
-    ux_idle_flow_3_step, 
-    bn, 
+    ux_idle_flow_3_step,
+    bn,
     {
       "Version",
       APPVERSION,
@@ -261,7 +261,7 @@ static const bagl_element_t bagl_ui_idle_blue[] = {
     HEADER_TEXT("NEO"),
     HEADER_BUTTON_R(DASHBOARD),
     HEADER_BUTTON_L(SETTINGS),
-    
+
     BODY_NEO_ICON,
     TEXT_CENTER(OPEN_TITLE, _Y(270), COLOUR_BLACK, FONT_L),
     TEXT_CENTER(OPEN_MESSAGE1, _Y(310), COLOUR_BLACK, FONT_S),
@@ -330,11 +330,11 @@ static const bagl_element_t bagl_ui_public_key_blue[] = {
     BG_FILL,
     HEADER_TEXT("Public Key"),
     HEADER_BUTTON_L(LEFT),
-    
+
     TEXT_CENTER(current_public_key[0], _Y(240), COLOUR_BLACK, FONT_L),
     TEXT_CENTER(current_public_key[1], _Y(270), COLOUR_BLACK, FONT_L),
     TEXT_CENTER(current_public_key[2], _Y(300), COLOUR_BLACK, FONT_L),
-    
+
     TEXT_CENTER(FOOTER1, _Y(442), COLOUR_GREY, FONT_XS),
     TEXT_CENTER(FOOTER2, _Y(458), COLOUR_GREY, FONT_XS)
 };
@@ -400,21 +400,21 @@ static const bagl_element_t bagl_ui_top_sign_nanos[] = {
 static const bagl_element_t bagl_ui_top_sign_blue[] = {
     BG_FILL,
     HEADER_TEXT("Transaction"),
-    
+
     TEXT_CENTER(tx_desc[0][1], _Y(110), COLOUR_BLACK, FONT_L),
-    
+
     TEXT_CENTER("Amount", _Y(160), COLOUR_BLACK, FONT_L),
     TEXT_CENTER(tx_desc[1][0], _Y(190), COLOUR_BLACK, FONT_M),
     TEXT_CENTER(tx_desc[1][1], _Y(210), COLOUR_BLACK, FONT_M),
-    
+
     TEXT_CENTER("Destination Address", _Y(260), COLOUR_BLACK, FONT_L),
     TEXT_CENTER(tx_desc[2][0], _Y(290), COLOUR_BLACK, FONT_M),
     TEXT_CENTER(tx_desc[2][1], _Y(310), COLOUR_BLACK, FONT_M),
     TEXT_CENTER(tx_desc[2][2], _Y(330), COLOUR_BLACK, FONT_M),
-    
+
     BODY_BUTTON("Deny", _X(30), _Y(390), COLOUR_RED, io_seproxyhal_touch_deny),
     BODY_BUTTON("Approve", _X(170), _Y(390), COLOUR_GREEN_BUTTON, io_seproxyhal_touch_approve),
-    
+
     TEXT_CENTER(TX_FOOTER1, _Y(448), COLOUR_GREY, FONT_XS),
     TEXT_CENTER(TX_FOOTER2, _Y(464), COLOUR_GREY, FONT_XS)
 };
@@ -718,11 +718,11 @@ const bagl_element_t*io_seproxyhal_touch_approve(const bagl_element_t *e) {
 		unsigned char result[32];
 
 		cx_hash(&hash.header, CX_LAST, G_io_apdu_buffer, 0, result, 32);
-#if CX_APILEVEL >= 8		
+#if CX_APILEVEL >= 8
 		tx = cx_ecdsa_sign((void*) &privateKey, CX_RND_RFC6979 | CX_LAST, CX_SHA256, result, sizeof(result), G_io_apdu_buffer, sizeof(G_io_apdu_buffer), NULL);
-#else		
+#else
 		tx = cx_ecdsa_sign((void*) &privateKey, CX_RND_RFC6979 | CX_LAST, CX_SHA256, result, sizeof(result), G_io_apdu_buffer);
-#endif		
+#endif
 		// G_io_apdu_buffer[0] &= 0xF0; // discard the parity information
 		hashTainted = 1;
         clear_tx_desc();
@@ -798,7 +798,7 @@ void ui_idle(void) {
     UX_DISPLAY(bagl_ui_idle_blue, NULL);
 #elif defined(TARGET_NANOS)
     UX_DISPLAY(bagl_ui_idle_nanos, NULL);
-#elif defined(TARGET_NANOX)
+#elif defined(TARGET_NANOX) || defined(TARGET_NANOS2)
     // reserve a display stack slot if none yet
     if(G_ux.stack_count == 0) {
         ux_stack_push();
@@ -840,7 +840,7 @@ void ui_top_sign(void) {
     UX_DISPLAY(bagl_ui_top_sign_blue, NULL);
 #elif defined(TARGET_NANOS)
     UX_DISPLAY(bagl_ui_top_sign_nanos, NULL);
-#elif defined(TARGET_NANOX)
+#elif defined(TARGET_NANOX) || defined(TARGET_NANOS2)
     // reserve a display stack slot if none yet
     if(G_ux.stack_count == 0) {
         ux_stack_push();
@@ -879,7 +879,7 @@ static void clear_tx_desc(void) {
             tx_desc[i][j][MAX_TX_TEXT_WIDTH - 1] = '\0';
         }
     }
-    
+
     strncpy(tx_desc[1][0], NO_INFO, sizeof(NO_INFO));
     strncpy(tx_desc[2][0], NO_INFO, sizeof(NO_INFO));
 }
