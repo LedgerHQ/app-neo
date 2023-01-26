@@ -252,7 +252,8 @@ static const bagl_element_t bagl_ui_idle_nanos[] = {
  * exit on Left button, or on Both buttons. Do nothing on Right button only.
  */
 static unsigned int bagl_ui_idle_nanos_button(unsigned int button_mask, unsigned int button_mask_counter) {
-	switch (button_mask) {
+	UNUSED(button_mask_counter);
+    switch (button_mask) {
 	case BUTTON_EVT_RELEASED | BUTTON_RIGHT:
 		ui_public_key_1();
 		break;
@@ -308,7 +309,8 @@ static const bagl_element_t bagl_ui_public_key_nanos_2[] = {
  * exit on Left button, or on Both buttons. Do nothing on Right button only.
  */
 static unsigned int bagl_ui_public_key_nanos_1_button(unsigned int button_mask, unsigned int button_mask_counter) {
-	switch (button_mask) {
+	UNUSED(button_mask_counter);
+    switch (button_mask) {
 	case BUTTON_EVT_RELEASED | BUTTON_RIGHT:
 		ui_idle();
 		break;
@@ -328,7 +330,8 @@ static unsigned int bagl_ui_public_key_nanos_1_button(unsigned int button_mask, 
  * exit on Left button, or on Both buttons. Do nothing on Right button only.
  */
 static unsigned int bagl_ui_public_key_nanos_2_button(unsigned int button_mask, unsigned int button_mask_counter) {
-	switch (button_mask) {
+	UNUSED(button_mask_counter);
+    switch (button_mask) {
 	case BUTTON_EVT_RELEASED | BUTTON_RIGHT:
 		ui_idle();
 		break;
@@ -365,7 +368,8 @@ static const bagl_element_t bagl_ui_top_sign_nanos[] = {
  * up on Left button, down on right button, sign on both buttons.
  */
 static unsigned int bagl_ui_top_sign_nanos_button(unsigned int button_mask, unsigned int button_mask_counter) {
-	switch (button_mask) {
+	UNUSED(button_mask_counter);
+    switch (button_mask) {
 	case BUTTON_EVT_RELEASED | BUTTON_LEFT | BUTTON_RIGHT:
 		io_seproxyhal_touch_approve(NULL);
 		break;
@@ -406,7 +410,8 @@ static const bagl_element_t bagl_ui_sign_nanos[] = {
  * up on Left button, down on right button, sign on both buttons.
  */
 static unsigned int bagl_ui_sign_nanos_button(unsigned int button_mask, unsigned int button_mask_counter) {
-	switch (button_mask) {
+	UNUSED(button_mask_counter);
+    switch (button_mask) {
 	case BUTTON_EVT_RELEASED | BUTTON_LEFT | BUTTON_RIGHT:
 		io_seproxyhal_touch_approve(NULL);
 		break;
@@ -446,7 +451,8 @@ static const bagl_element_t bagl_ui_deny_nanos[] = {
  * up on Left button, down on right button, deny on both buttons.
  */
 static unsigned int bagl_ui_deny_nanos_button(unsigned int button_mask, unsigned int button_mask_counter) {
-	switch (button_mask) {
+	UNUSED(button_mask_counter);
+    switch (button_mask) {
 	case BUTTON_EVT_RELEASED | BUTTON_LEFT | BUTTON_RIGHT:
 		io_seproxyhal_touch_deny(NULL);
 		break;
@@ -506,7 +512,8 @@ static const bagl_element_t bagl_ui_tx_desc_nanos_2[] = {
  * up on Left button, down on right button.
  */
 static unsigned int bagl_ui_tx_desc_nanos_1_button(unsigned int button_mask, unsigned int button_mask_counter) {
-	switch (button_mask) {
+	UNUSED(button_mask_counter);
+    switch (button_mask) {
 	case BUTTON_EVT_RELEASED | BUTTON_RIGHT:
 		tx_desc_dn(NULL);
 		break;
@@ -524,7 +531,8 @@ static unsigned int bagl_ui_tx_desc_nanos_1_button(unsigned int button_mask, uns
  * up on Left button, down on right button.
  */
 static unsigned int bagl_ui_tx_desc_nanos_2_button(unsigned int button_mask, unsigned int button_mask_counter) {
-	switch (button_mask) {
+	UNUSED(button_mask_counter);
+    switch (button_mask) {
 	case BUTTON_EVT_RELEASED | BUTTON_RIGHT:
 		tx_desc_dn(NULL);
 		break;
@@ -538,14 +546,16 @@ static unsigned int bagl_ui_tx_desc_nanos_2_button(unsigned int button_mask, uns
 
 /** if the user wants to exit go back to the app dashboard. */
 static const bagl_element_t *io_seproxyhal_touch_exit(const bagl_element_t *e) {
-	// Go back to the dashboard
+	UNUSED(e);
+    // Go back to the dashboard
 	os_sched_exit(0);
 	return NULL; // do not redraw the widget
 }
 
 /** copy the current row of the tx_desc buffer into curr_tx_desc to display on the screen */
 static void copy_tx_desc(void) {
-	os_memmove(curr_tx_desc, tx_desc[curr_scr_ix], CURR_TX_DESC_LEN);
+	
+    memmove(curr_tx_desc, tx_desc[curr_scr_ix], CURR_TX_DESC_LEN);
 	curr_tx_desc[0][MAX_TX_TEXT_WIDTH - 1] = '\0';
 	curr_tx_desc[1][MAX_TX_TEXT_WIDTH - 1] = '\0';
 	curr_tx_desc[2][MAX_TX_TEXT_WIDTH - 1] = '\0';
@@ -553,7 +563,8 @@ static void copy_tx_desc(void) {
 
 /** processes the Up button */
 static const bagl_element_t * tx_desc_up(const bagl_element_t *e) {
-	switch (uiState) {
+	UNUSED(e);
+    switch (uiState) {
 	case UI_TOP_SIGN:
 		ui_deny();
 		break;
@@ -592,7 +603,8 @@ static const bagl_element_t * tx_desc_up(const bagl_element_t *e) {
 
 /** processes the Down button */
 static const bagl_element_t * tx_desc_dn(const bagl_element_t *e) {
-	switch (uiState) {
+	UNUSED(e);
+    switch (uiState) {
 	case UI_TOP_SIGN:
 		curr_scr_ix = 0;
 		copy_tx_desc();
@@ -631,7 +643,8 @@ static const bagl_element_t * tx_desc_dn(const bagl_element_t *e) {
 
 /** processes the transaction approval. the UI is only displayed when all of the TX has been sent over for signing. */
 const bagl_element_t*io_seproxyhal_touch_approve(const bagl_element_t *e) {
-	unsigned int tx = 0;
+	UNUSED(e);
+    unsigned int tx = 0;
 
 	if (G_io_apdu_buffer[2] == P1_LAST) {
 		unsigned int raw_tx_len_except_bip44 = raw_tx_len - BIP44_BYTE_LENGTH;
@@ -687,7 +700,8 @@ const bagl_element_t*io_seproxyhal_touch_approve(const bagl_element_t *e) {
 
 /** deny signing. */
 static const bagl_element_t *io_seproxyhal_touch_deny(const bagl_element_t *e) {
-	hashTainted = 1;
+	UNUSED(e);
+    hashTainted = 1;
     clear_tx_desc();
 	raw_tx_ix = 0;
 	raw_tx_len = 0;

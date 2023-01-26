@@ -252,7 +252,7 @@ static unsigned int encode_base_x(const char * alphabet, const unsigned int alph
 		hashTainted = 1;
 		THROW(0x6D11);
 	}
-	os_memmove(tmp, in, in_length);
+	memmove(tmp, in, in_length);
 	while ((zeroCount < in_length) && (tmp[zeroCount] == 0)) {
 		++zeroCount;
 	}
@@ -287,13 +287,14 @@ static unsigned int encode_base_x(const char * alphabet, const unsigned int alph
 	if (true_out_length > out_length) {
 		THROW(0x6D14);
 	}
-	os_memmove(out, (buffer + buffer_ix), true_out_length);
+	memmove(out, (buffer + buffer_ix), true_out_length);
 	return true_out_length;
 }
 
 /** converts a value to base10 with a decimal point at DECIMAL_PLACE_OFFSET, which should be 100,000,000 or 100 million, thus the suffix 100m */
 static void to_base10_100m(char * dest, const unsigned char * value, const unsigned int dest_len) {
-	// reverse the array
+	UNUSED(dest_len);
+    // reverse the array
 	unsigned char reverse_value[VALUE_LEN];
 	for (int ix = 0; ix < VALUE_LEN; ix++) {
 		reverse_value[ix] = *(value + ((VALUE_LEN - 1) - ix));
@@ -306,11 +307,11 @@ static void to_base10_100m(char * dest, const unsigned char * value, const unsig
 	// place the decimal place.
 	unsigned int dec_place_ix = buffer_len - DECIMAL_PLACE_OFFSET;
 	if (buffer_len < DECIMAL_PLACE_OFFSET) {
-		os_memmove(dest, TXT_LOW_VALUE, sizeof(TXT_LOW_VALUE));
+		memmove(dest, TXT_LOW_VALUE, sizeof(TXT_LOW_VALUE));
 	} else {
-		os_memmove(dest + dec_place_ix, TXT_PERIOD, sizeof(TXT_PERIOD));
-		os_memmove(dest, base10_buffer, dec_place_ix);
-		os_memmove(dest + dec_place_ix + 1, base10_buffer + dec_place_ix, buffer_len - dec_place_ix);
+		memmove(dest + dec_place_ix, TXT_PERIOD, sizeof(TXT_PERIOD));
+		memmove(dest, base10_buffer, dec_place_ix);
+		memmove(dest + dec_place_ix + 1, base10_buffer + dec_place_ix, buffer_len - dec_place_ix);
 	}
 }
 
@@ -323,7 +324,7 @@ static void to_address(char * dest, unsigned int dest_len, const unsigned char *
 	// concatenate the ADDRESS_VERSION and the address.
 	unsigned char address[ADDRESS_LEN];
 	address[0] = ADDRESS_VERSION;
-	os_memmove(address + 1, script_hash, SCRIPT_HASH_LEN);
+	memmove(address + 1, script_hash, SCRIPT_HASH_LEN);
 
 	// do a sha256 hash of the address twice.
 	cx_sha256_init(&address_hash);
@@ -332,7 +333,7 @@ static void to_address(char * dest, unsigned int dest_len, const unsigned char *
 	cx_hash(&address_hash.header, CX_LAST, address_hash_result_0, SHA256_HASH_LEN, address_hash_result_1, 32);
 
 	// add the first bytes of the hash as a checksum at the end of the address.
-	os_memmove(address + 1 + SCRIPT_HASH_LEN, address_hash_result_1, SCRIPT_HASH_CHECKSUM_LEN);
+	memmove(address + 1 + SCRIPT_HASH_LEN, address_hash_result_1, SCRIPT_HASH_CHECKSUM_LEN);
 
 	// encode the version + address + cehcksum in base58
 	encode_base_58(address, ADDRESS_LEN, dest, dest_len);
@@ -434,38 +435,38 @@ unsigned char display_tx_desc() {
 	if (SHOW_TX_TYPE) {
 		if (scr_ix < MAX_TX_TEXT_SCREENS) {
 			// add transaction type screen.
-			os_memmove(tx_desc[scr_ix][0], TXT_BLANK, sizeof(TXT_BLANK));
+			memmove(tx_desc[scr_ix][0], TXT_BLANK, sizeof(TXT_BLANK));
 			switch (trans_type) {
 			case TX_MINER:
-				os_memmove(tx_desc[scr_ix][1], TX_MINER_NM, sizeof(TX_MINER_NM));
+				memmove(tx_desc[scr_ix][1], TX_MINER_NM, sizeof(TX_MINER_NM));
 				break;
 
 			case TX_ISSUE:
-				os_memmove(tx_desc[scr_ix][1], TX_ISSUE_NM, sizeof(TX_ISSUE_NM));
+				memmove(tx_desc[scr_ix][1], TX_ISSUE_NM, sizeof(TX_ISSUE_NM));
 				break;
 
 			case TX_CLAIM:
-				os_memmove(tx_desc[scr_ix][1], TX_CLAIM_NM, sizeof(TX_CLAIM_NM));
+				memmove(tx_desc[scr_ix][1], TX_CLAIM_NM, sizeof(TX_CLAIM_NM));
 				break;
 
 			case TX_ENROLL:
-				os_memmove(tx_desc[scr_ix][1], TX_ENROLL_NM, sizeof(TX_ENROLL_NM));
+				memmove(tx_desc[scr_ix][1], TX_ENROLL_NM, sizeof(TX_ENROLL_NM));
 				break;
 
 			case TX_REGISTER:
-				os_memmove(tx_desc[scr_ix][1], TX_REGISTER_NM, sizeof(TX_REGISTER_NM));
+				memmove(tx_desc[scr_ix][1], TX_REGISTER_NM, sizeof(TX_REGISTER_NM));
 				break;
 
 			case TX_CONTRACT:
-				os_memmove(tx_desc[scr_ix][1], TX_CONTRACT_NM, sizeof(TX_CONTRACT_NM));
+				memmove(tx_desc[scr_ix][1], TX_CONTRACT_NM, sizeof(TX_CONTRACT_NM));
 				break;
 
 			case TX_PUBLISH:
-				os_memmove(tx_desc[scr_ix][1], TX_PUBLISH_NM, sizeof(TX_PUBLISH_NM));
+				memmove(tx_desc[scr_ix][1], TX_PUBLISH_NM, sizeof(TX_PUBLISH_NM));
 				break;
 
 			case TX_INVOKE:
-				os_memmove(tx_desc[scr_ix][1], TX_INVOKE_NM, sizeof(TX_INVOKE_NM));
+				memmove(tx_desc[scr_ix][1], TX_INVOKE_NM, sizeof(TX_INVOKE_NM));
 				break;
 
 			default:
@@ -477,9 +478,9 @@ unsigned char display_tx_desc() {
 			if (SHOW_TX_LEN) {
 				hex_buffer_len = min(MAX_HEX_BUFFER_LEN, sizeof(raw_tx_len)) * 2;
 				to_hex(hex_buffer, (unsigned char *) &raw_tx_len, hex_buffer_len);
-				os_memmove(tx_desc[scr_ix][2], hex_buffer, hex_buffer_len);
+				memmove(tx_desc[scr_ix][2], hex_buffer, hex_buffer_len);
 			} else {
-				os_memmove(tx_desc[scr_ix][2], TXT_BLANK, sizeof(TXT_BLANK));
+				memmove(tx_desc[scr_ix][2], TXT_BLANK, sizeof(TXT_BLANK));
 			}
 			scr_ix++;
 		}
@@ -489,15 +490,15 @@ unsigned char display_tx_desc() {
 	unsigned char version = next_raw_tx();
 	if (SHOW_VERSION) {
 		if (scr_ix < MAX_TX_TEXT_SCREENS) {
-			os_memmove(tx_desc[scr_ix][0], TXT_VERSION, sizeof(TXT_VERSION));
+			memmove(tx_desc[scr_ix][0], TXT_VERSION, sizeof(TXT_VERSION));
 
 			hex_buffer_len = min(MAX_HEX_BUFFER_LEN, sizeof(version)) * 2;
 			to_hex(hex_buffer, &version, hex_buffer_len);
-			os_memmove(tx_desc[scr_ix][1], hex_buffer, hex_buffer_len);
+			memmove(tx_desc[scr_ix][1], hex_buffer, hex_buffer_len);
 
 			hex_buffer_len = min(MAX_HEX_BUFFER_LEN, sizeof(raw_tx_ix)) * 2;
 			to_hex(hex_buffer, (unsigned char *) &raw_tx_ix, hex_buffer_len);
-			os_memmove(tx_desc[scr_ix][2], hex_buffer, hex_buffer_len);
+			memmove(tx_desc[scr_ix][2], hex_buffer, hex_buffer_len);
 			scr_ix++;
 		}
 	}
@@ -508,15 +509,15 @@ unsigned char display_tx_desc() {
 		unsigned char num_coin_claims = next_raw_tx_varbytes_num();
 		if (SHOW_EXCLUSIVE_DATA) {
 			if (scr_ix < MAX_TX_TEXT_SCREENS) {
-				os_memmove(tx_desc[scr_ix][0], TXT_CLAIMS, sizeof(TXT_CLAIMS));
+				memmove(tx_desc[scr_ix][0], TXT_CLAIMS, sizeof(TXT_CLAIMS));
 
 				hex_buffer_len = min(MAX_HEX_BUFFER_LEN, sizeof(num_coin_claims)) * 2;
 				to_hex(hex_buffer, &num_coin_claims, hex_buffer_len);
-				os_memmove(tx_desc[scr_ix][1], hex_buffer, hex_buffer_len);
+				memmove(tx_desc[scr_ix][1], hex_buffer, hex_buffer_len);
 
 				hex_buffer_len = min(MAX_HEX_BUFFER_LEN, sizeof(raw_tx_ix)) * 2;
 				to_hex(hex_buffer, (unsigned char *) &raw_tx_ix, hex_buffer_len);
-				os_memmove(tx_desc[scr_ix][2], hex_buffer, hex_buffer_len);
+				memmove(tx_desc[scr_ix][2], hex_buffer, hex_buffer_len);
 				scr_ix++;
 			}
 		}
@@ -540,15 +541,15 @@ unsigned char display_tx_desc() {
 	unsigned char num_attr = next_raw_tx_varbytes_num();
 	if (SHOW_NUM_ATTRIBUTES) {
 		if (scr_ix < MAX_TX_TEXT_SCREENS) {
-			os_memmove(tx_desc[scr_ix][0], TXT_NUM_ATTR, sizeof(TXT_NUM_ATTR));
+			memmove(tx_desc[scr_ix][0], TXT_NUM_ATTR, sizeof(TXT_NUM_ATTR));
 
 			hex_buffer_len = min(MAX_HEX_BUFFER_LEN, sizeof(num_attr)) * 2;
 			to_hex(hex_buffer, &num_attr, hex_buffer_len);
-			os_memmove(tx_desc[scr_ix][1], hex_buffer, hex_buffer_len);
+			memmove(tx_desc[scr_ix][1], hex_buffer, hex_buffer_len);
 
 			hex_buffer_len = min(MAX_HEX_BUFFER_LEN, sizeof(raw_tx_ix)) * 2;
 			to_hex(hex_buffer, (unsigned char *) &raw_tx_ix, hex_buffer_len);
-			os_memmove(tx_desc[scr_ix][2], hex_buffer, hex_buffer_len);
+			memmove(tx_desc[scr_ix][2], hex_buffer, hex_buffer_len);
 			scr_ix++;
 		}
 	}
@@ -619,15 +620,15 @@ unsigned char display_tx_desc() {
 	unsigned char num_coin_references = next_raw_tx_varbytes_num();
 	if (SHOW_NUM_COIN_REFERENCES) {
 		if (scr_ix < MAX_TX_TEXT_SCREENS) {
-			os_memmove(tx_desc[scr_ix][0], TXT_NUM_TXIN, sizeof(TXT_NUM_TXIN));
+			memmove(tx_desc[scr_ix][0], TXT_NUM_TXIN, sizeof(TXT_NUM_TXIN));
 
 			hex_buffer_len = min(MAX_HEX_BUFFER_LEN, sizeof(num_coin_references)) * 2;
 			to_hex(hex_buffer, &num_coin_references, hex_buffer_len);
-			os_memmove(tx_desc[scr_ix][1], hex_buffer, hex_buffer_len);
+			memmove(tx_desc[scr_ix][1], hex_buffer, hex_buffer_len);
 
 			hex_buffer_len = min(MAX_HEX_BUFFER_LEN, sizeof(raw_tx_ix)) * 2;
 			to_hex(hex_buffer, (unsigned char *) &raw_tx_ix, hex_buffer_len);
-			os_memmove(tx_desc[scr_ix][2], hex_buffer, hex_buffer_len);
+			memmove(tx_desc[scr_ix][2], hex_buffer, hex_buffer_len);
 			scr_ix++;
 		}
 	}
@@ -637,15 +638,15 @@ unsigned char display_tx_desc() {
 	unsigned char num_tx_outs = next_raw_tx_varbytes_num();
 	if (SHOW_NUM_TX_OUTS) {
 		if (scr_ix < MAX_TX_TEXT_SCREENS) {
-			os_memmove(tx_desc[scr_ix][0], TXT_NUM_TXOUT, sizeof(TXT_NUM_TXOUT));
+			memmove(tx_desc[scr_ix][0], TXT_NUM_TXOUT, sizeof(TXT_NUM_TXOUT));
 
 			hex_buffer_len = min(MAX_HEX_BUFFER_LEN, sizeof(num_tx_outs)) * 2;
 			to_hex(hex_buffer, &num_tx_outs, hex_buffer_len);
-			os_memmove(tx_desc[scr_ix][1], hex_buffer, hex_buffer_len);
+			memmove(tx_desc[scr_ix][1], hex_buffer, hex_buffer_len);
 
 			hex_buffer_len = min(MAX_HEX_BUFFER_LEN, sizeof(raw_tx_ix)) * 2;
 			to_hex(hex_buffer, (unsigned char *) &raw_tx_ix, hex_buffer_len);
-			os_memmove(tx_desc[scr_ix][2], hex_buffer, hex_buffer_len);
+			memmove(tx_desc[scr_ix][2], hex_buffer, hex_buffer_len);
 			scr_ix++;
 		}
 	}
@@ -677,14 +678,14 @@ unsigned char display_tx_desc() {
 
 		// asset_id and value screen
 		if (scr_ix < MAX_TX_TEXT_SCREENS) {
-			os_memset(tx_desc[scr_ix], '\0', CURR_TX_DESC_LEN);
+			memset(tx_desc[scr_ix], '\0', CURR_TX_DESC_LEN);
 			// asset id
 			if (is_asset_id(asset_id, NEO_ASSET_ID)) {
-				os_memmove(tx_desc[scr_ix][0], TXT_ASSET_NEO, sizeof(TXT_ASSET_NEO));
+				memmove(tx_desc[scr_ix][0], TXT_ASSET_NEO, sizeof(TXT_ASSET_NEO));
 			} else if (is_asset_id(asset_id, GAS_ASSET_ID)) {
-				os_memmove(tx_desc[scr_ix][0], TXT_ASSET_GAS, sizeof(TXT_ASSET_GAS));
+				memmove(tx_desc[scr_ix][0], TXT_ASSET_GAS, sizeof(TXT_ASSET_GAS));
 			} else {
-				os_memmove(tx_desc[scr_ix][0], TXT_ASSET_UNKNOWN, sizeof(TXT_ASSET_UNKNOWN));
+				memmove(tx_desc[scr_ix][0], TXT_ASSET_UNKNOWN, sizeof(TXT_ASSET_UNKNOWN));
 			}
 
 			// value, base 10.
@@ -694,9 +695,9 @@ unsigned char display_tx_desc() {
 			if (SHOW_VALUE_HEX) {
 				hex_buffer_len = min(MAX_HEX_BUFFER_LEN, VALUE_LEN) * 2;
 				to_hex(hex_buffer, value, hex_buffer_len);
-				os_memmove(tx_desc[scr_ix][2], hex_buffer, hex_buffer_len);
+				memmove(tx_desc[scr_ix][2], hex_buffer, hex_buffer_len);
 			} else {
-				os_memmove(tx_desc[scr_ix][2], TXT_BLANK, sizeof(TXT_BLANK));
+				memmove(tx_desc[scr_ix][2], TXT_BLANK, sizeof(TXT_BLANK));
 			}
 			scr_ix++;
 		}
@@ -706,15 +707,15 @@ unsigned char display_tx_desc() {
 			if (scr_ix < MAX_TX_TEXT_SCREENS) {
 				hex_buffer_len = min(MAX_HEX_BUFFER_LEN, script_hash_len0) * 2;
 				to_hex(hex_buffer, script_hash0, hex_buffer_len);
-				os_memmove(tx_desc[scr_ix][0], hex_buffer, hex_buffer_len);
+				memmove(tx_desc[scr_ix][0], hex_buffer, hex_buffer_len);
 
 				hex_buffer_len = min(MAX_HEX_BUFFER_LEN, script_hash_len1) * 2;
 				to_hex(hex_buffer, script_hash1, hex_buffer_len);
-				os_memmove(tx_desc[scr_ix][1], hex_buffer, hex_buffer_len);
+				memmove(tx_desc[scr_ix][1], hex_buffer, hex_buffer_len);
 
 				hex_buffer_len = min(MAX_HEX_BUFFER_LEN, script_hash_len2) * 2;
 				to_hex(hex_buffer, script_hash2, hex_buffer_len);
-				os_memmove(tx_desc[scr_ix][2], hex_buffer, hex_buffer_len);
+				memmove(tx_desc[scr_ix][2], hex_buffer, hex_buffer_len);
 
 				scr_ix++;
 			}
@@ -722,10 +723,10 @@ unsigned char display_tx_desc() {
 
 		// address screen
 		if (scr_ix < MAX_TX_TEXT_SCREENS) {
-			os_memset(tx_desc[scr_ix], '\0', CURR_TX_DESC_LEN);
-			os_memmove(tx_desc[scr_ix][0], address_base58_0, address_base58_len_0);
-			os_memmove(tx_desc[scr_ix][1], address_base58_1, address_base58_len_1);
-			os_memmove(tx_desc[scr_ix][2], address_base58_2, address_base58_len_2);
+			memset(tx_desc[scr_ix], '\0', CURR_TX_DESC_LEN);
+			memmove(tx_desc[scr_ix][0], address_base58_0, address_base58_len_0);
+			memmove(tx_desc[scr_ix][1], address_base58_1, address_base58_len_1);
+			memmove(tx_desc[scr_ix][2], address_base58_2, address_base58_len_2);
 
 			scr_ix++;
 		}
@@ -733,17 +734,17 @@ unsigned char display_tx_desc() {
 
 	max_scr_ix = scr_ix;
 
-	os_memmove(curr_tx_desc, tx_desc[curr_scr_ix], CURR_TX_DESC_LEN);
+	memmove(curr_tx_desc, tx_desc[curr_scr_ix], CURR_TX_DESC_LEN);
 
 	return 1;
 }
 
 void display_no_public_key() {
-	os_memmove(current_public_key[0], TXT_BLANK, sizeof(TXT_BLANK));
-	os_memmove(current_public_key[1], TXT_BLANK, sizeof(TXT_BLANK));
-	os_memmove(current_public_key[2], TXT_BLANK, sizeof(TXT_BLANK));
-	os_memmove(current_public_key[0], NO_PUBLIC_KEY_0, sizeof(NO_PUBLIC_KEY_0));
-	os_memmove(current_public_key[1], NO_PUBLIC_KEY_1, sizeof(NO_PUBLIC_KEY_1));
+	memmove(current_public_key[0], TXT_BLANK, sizeof(TXT_BLANK));
+	memmove(current_public_key[1], TXT_BLANK, sizeof(TXT_BLANK));
+	memmove(current_public_key[2], TXT_BLANK, sizeof(TXT_BLANK));
+	memmove(current_public_key[0], NO_PUBLIC_KEY_0, sizeof(NO_PUBLIC_KEY_0));
+	memmove(current_public_key[1], NO_PUBLIC_KEY_1, sizeof(NO_PUBLIC_KEY_1));
 	publicKeyNeedsRefresh = 0;
 }
 
@@ -761,18 +762,18 @@ void public_key_hash160(unsigned char * in, unsigned short inlen, unsigned char 
 }
 
 void display_public_key(const unsigned char * public_key) {
-	os_memmove(current_public_key[0], TXT_BLANK, sizeof(TXT_BLANK));
-	os_memmove(current_public_key[1], TXT_BLANK, sizeof(TXT_BLANK));
-	os_memmove(current_public_key[2], TXT_BLANK, sizeof(TXT_BLANK));
+	memmove(current_public_key[0], TXT_BLANK, sizeof(TXT_BLANK));
+	memmove(current_public_key[1], TXT_BLANK, sizeof(TXT_BLANK));
+	memmove(current_public_key[2], TXT_BLANK, sizeof(TXT_BLANK));
 
 	// from https://github.com/CityOfZion/neon-js core.js
 	unsigned char public_key_encoded[33];
 	public_key_encoded[0] = ((public_key[64] & 1) ? 0x03 : 0x02);
-	os_memmove(public_key_encoded + 1, public_key + 1, 32);
+	memmove(public_key_encoded + 1, public_key + 1, 32);
 
 	unsigned char verification_script[35];
 	verification_script[0] = 0x21;
-	os_memmove(verification_script + 1, public_key_encoded, sizeof(public_key_encoded));
+	memmove(verification_script + 1, public_key_encoded, sizeof(public_key_encoded));
 	verification_script[sizeof(verification_script) - 1] = 0xAC;
 
 	unsigned char script_hash[SCRIPT_HASH_LEN];
@@ -795,8 +796,7 @@ void display_public_key(const unsigned char * public_key) {
 	char * address_base58_2 = address_base58 + address_base58_len_0 + address_base58_len_1;
 	to_address(address_base58, ADDRESS_BASE58_LEN, script_hash);
 
-	os_memmove(current_public_key[0], address_base58_0, address_base58_len_0);
-	os_memmove(current_public_key[1], address_base58_1, address_base58_len_1);
-	os_memmove(current_public_key[2], address_base58_2, address_base58_len_2);
-
+	memmove(current_public_key[0], address_base58_0, address_base58_len_0);
+	memmove(current_public_key[1], address_base58_1, address_base58_len_1);
+	memmove(current_public_key[2], address_base58_2, address_base58_len_2);
 }

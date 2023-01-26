@@ -178,7 +178,7 @@ static void neo_main(void) {
 								hashTainted = 1;
 								THROW(0x6D08);
 							}
-							os_memmove(out, in, len);
+							memmove(out, in, len);
 							raw_tx_ix += len;
 
 							// set the screen to be the first screen.
@@ -239,7 +239,7 @@ static void neo_main(void) {
 							cx_ecfp_generate_pair(CX_CURVE_256R1, &publicKey, &privateKey, 1);
 
 							// push the public key onto the response buffer.
-							os_memmove(G_io_apdu_buffer, publicKey.W, 65);
+							memmove(G_io_apdu_buffer, publicKey.W, 65);
 							tx = 65;
 
 							display_public_key(publicKey.W);
@@ -280,7 +280,7 @@ static void neo_main(void) {
 							cx_ecfp_generate_pair(CX_CURVE_256R1, &publicKey, &privateKey, 1);
 
 							// push the public key onto the response buffer.
-							os_memmove(G_io_apdu_buffer, publicKey.W, 65);
+							memmove(G_io_apdu_buffer, publicKey.W, 65);
 							tx = 65;
 
 							display_public_key(publicKey.W);
@@ -346,7 +346,8 @@ void io_seproxyhal_display(const bagl_element_t *element) {
 
 /* io event loop */
 unsigned char io_event(unsigned char channel) {
-	// nothing done with the event, throw an error on the transport layer if
+	UNUSED(channel);
+    // nothing done with the event, throw an error on the transport layer if
 	// needed
 
 	// can't have more than one tag in the reply, not supported yet.
