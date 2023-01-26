@@ -27,8 +27,27 @@ enum UI_STATE uiState;
 #include "ux.h"
 ux_state_t G_ux;
 bolos_ux_params_t G_ux_params;
-#else // TARGET_NANOX
+#else // TARGET_NANOS
 ux_state_t ux;
+/** show the public key screen */
+static void ui_public_key_1(void);
+static void ui_public_key_2(void);
+/** display part of the transaction description */
+static void ui_display_tx_desc_1(void);
+static void ui_display_tx_desc_2(void);
+/** move up in the transaction description list */
+static const bagl_element_t * tx_desc_up(const bagl_element_t *e);
+/** move down in the transaction description list */
+static const bagl_element_t * tx_desc_dn(const bagl_element_t *e);
+/** display the UI for signing a transaction */
+static void ui_sign(void);
+/** display the UI for denying a transaction */
+static void ui_deny(void);
+
+static void copy_tx_desc(void);
+
+/** UI was touched indicating the user wants to exit the app */
+static const bagl_element_t * io_seproxyhal_touch_exit(const bagl_element_t *e);
 #endif // TARGET_NANOX
 
 /** notification to restart the hash */
@@ -64,31 +83,8 @@ char curr_tx_desc[MAX_TX_TEXT_LINES][MAX_TX_TEXT_WIDTH];
 /** currently displayed public key */
 char current_public_key[MAX_TX_TEXT_LINES][MAX_TX_TEXT_WIDTH];
 
-/** UI was touched indicating the user wants to exit the app */
-static const bagl_element_t * io_seproxyhal_touch_exit(const bagl_element_t *e);
-
 /** UI was touched indicating the user wants to deny te signature request */
 static const bagl_element_t * io_seproxyhal_touch_deny(const bagl_element_t *e);
-
-/** display part of the transaction description */
-static void ui_display_tx_desc_1(void);
-static void ui_display_tx_desc_2(void);
-
-/** display the UI for signing a transaction */
-static void ui_sign(void);
-
-/** display the UI for denying a transaction */
-static void ui_deny(void);
-
-/** show the public key screen */
-static void ui_public_key_1(void);
-static void ui_public_key_2(void);
-
-/** move up in the transaction description list */
-static const bagl_element_t * tx_desc_up(const bagl_element_t *e);
-
-/** move down in the transaction description list */
-static const bagl_element_t * tx_desc_dn(const bagl_element_t *e);
 
 /** sets the tx_desc variables to no information */
 static void clear_tx_desc(void);
@@ -229,7 +225,7 @@ UX_FLOW(ux_idle_flow,
 ////////////////////////////////////////////////////////////////////////////////////////////////
 
 
-
+#if defined(TARGET_NANOS)
 /** UI struct for the idle screen */
 static const bagl_element_t bagl_ui_idle_nanos[] = {
 // { {type, userid, x, y, width, height, stroke, radius, fill, fgcolor, bgcolor, font_id, icon_id},
@@ -641,6 +637,61 @@ static const bagl_element_t * tx_desc_dn(const bagl_element_t *e) {
 	return NULL;
 }
 
+/** show the transaction description screen. */
+static void ui_display_tx_desc_1(void) {
+	uiState = UI_TX_DESC_1;
+#if defined(TARGET_NANOS)
+    UX_DISPLAY(bagl_ui_tx_desc_nanos_1, NULL);
+#endif // #if TARGET_ID
+}
+
+
+/** show the transaction description screen. */
+static void ui_display_tx_desc_2(void) {
+	uiState = UI_TX_DESC_2;
+#if defined(TARGET_NANOS)
+    UX_DISPLAY(bagl_ui_tx_desc_nanos_2, NULL);
+#endif // #if TARGET_ID
+}
+
+
+/** show the bottom "Sign Transaction" screen. */
+static void ui_sign(void) {
+	uiState = UI_SIGN;
+#if defined(TARGET_NANOS)
+    UX_DISPLAY(bagl_ui_sign_nanos, NULL);
+#endif // #if TARGET_ID
+}
+
+/** show the "deny" screen */
+static void ui_deny(void) {
+	uiState = UI_DENY;
+#if defined(TARGET_NANOS)
+    UX_DISPLAY(bagl_ui_deny_nanos, NULL);
+#endif // #if TARGET_ID
+}
+
+/** show the public key screen */
+void ui_public_key_1(void) {
+	uiState = UI_PUBLIC_KEY_1;
+	if (os_seph_features() & SEPROXYHAL_TAG_SESSION_START_EVENT_FEATURE_SCREEN_BIG) {
+	} else {
+		UX_DISPLAY(bagl_ui_public_key_nanos_1, NULL);
+	}
+}
+
+/** show the public key screen */
+void ui_public_key_2(void) {
+	uiState = UI_PUBLIC_KEY_2;
+	if (os_seph_features() & SEPROXYHAL_TAG_SESSION_START_EVENT_FEATURE_SCREEN_BIG) {
+	} else {
+		UX_DISPLAY(bagl_ui_public_key_nanos_2, NULL);
+	}
+}
+
+#endif
+
+
 /** processes the transaction approval. the UI is only displayed when all of the TX has been sent over for signing. */
 const bagl_element_t*io_seproxyhal_touch_approve(const bagl_element_t *e) {
 	UNUSED(e);
@@ -714,24 +765,6 @@ static const bagl_element_t *io_seproxyhal_touch_deny(const bagl_element_t *e) {
 	return 0; // do not redraw the widget
 }
 
-/** show the public key screen */
-void ui_public_key_1(void) {
-	uiState = UI_PUBLIC_KEY_1;
-	if (os_seph_features() & SEPROXYHAL_TAG_SESSION_START_EVENT_FEATURE_SCREEN_BIG) {
-	} else {
-		UX_DISPLAY(bagl_ui_public_key_nanos_1, NULL);
-	}
-}
-
-/** show the public key screen */
-void ui_public_key_2(void) {
-	uiState = UI_PUBLIC_KEY_2;
-	if (os_seph_features() & SEPROXYHAL_TAG_SESSION_START_EVENT_FEATURE_SCREEN_BIG) {
-	} else {
-		UX_DISPLAY(bagl_ui_public_key_nanos_2, NULL);
-	}
-}
-
 /** show the idle screen. */
 void ui_idle(void) {
 	uiState = UI_IDLE;
@@ -747,31 +780,6 @@ void ui_idle(void) {
 #endif // #if TARGET_ID
 }
 
-/** show the transaction description screen. */
-static void ui_display_tx_desc_1(void) {
-	uiState = UI_TX_DESC_1;
-#if defined(TARGET_NANOS)
-    UX_DISPLAY(bagl_ui_tx_desc_nanos_1, NULL);
-#endif // #if TARGET_ID
-}
-
-
-/** show the transaction description screen. */
-static void ui_display_tx_desc_2(void) {
-	uiState = UI_TX_DESC_2;
-#if defined(TARGET_NANOS)
-    UX_DISPLAY(bagl_ui_tx_desc_nanos_2, NULL);
-#endif // #if TARGET_ID
-}
-
-/** show the bottom "Sign Transaction" screen. */
-static void ui_sign(void) {
-	uiState = UI_SIGN;
-#if defined(TARGET_NANOS)
-    UX_DISPLAY(bagl_ui_sign_nanos, NULL);
-#endif // #if TARGET_ID
-}
-
 /** show the top "Sign Transaction" screen. */
 void ui_top_sign(void) {
 	uiState = UI_TOP_SIGN;
@@ -784,14 +792,6 @@ void ui_top_sign(void) {
         ux_stack_push();
     }
     ux_flow_init(0, ux_confirm_single_flow, NULL);
-#endif // #if TARGET_ID
-}
-
-/** show the "deny" screen */
-static void ui_deny(void) {
-	uiState = UI_DENY;
-#if defined(TARGET_NANOS)
-    UX_DISPLAY(bagl_ui_deny_nanos, NULL);
 #endif // #if TARGET_ID
 }
 
