@@ -3,16 +3,15 @@
  */
 
 #include "ui.h"
-#include "blue_elements.h"
 #include "glyphs.h"
 
 /** default font */
 #define DEFAULT_FONT BAGL_FONT_OPEN_SANS_EXTRABOLD_11px | BAGL_FONT_ALIGNMENT_CENTER
 
-#define DEFAULT_FONT_BLUE BAGL_FONT_OPEN_SANS_LIGHT_14px | BAGL_FONT_ALIGNMENT_CENTER | BAGL_FONT_ALIGNMENT_MIDDLE
-
 /** text description font. */
 #define TX_DESC_FONT BAGL_FONT_OPEN_SANS_REGULAR_11px | BAGL_FONT_ALIGNMENT_CENTER
+
+#define NO_INFO "Info not available"
 
 /** the timer */
 int exit_timer;
@@ -93,14 +92,6 @@ static const bagl_element_t * tx_desc_dn(const bagl_element_t *e);
 
 /** sets the tx_desc variables to no information */
 static void clear_tx_desc(void);
-
-/** return app to dashboard */
-static const bagl_element_t *bagl_ui_DASHBOARD_blue_button(const bagl_element_t *e);
-/** goes to settings menu (pubkey display) on blue */
-static const bagl_element_t *bagl_ui_SETTINGS_blue_button(const bagl_element_t *e);
-/** returns to NEO app on blue */
-static const bagl_element_t *bagl_ui_LEFT_blue_button(const bagl_element_t *e);
-
 
 ////////////////////////////////////  NANO X //////////////////////////////////////////////////
 #if defined(TARGET_NANOX) || defined(TARGET_NANOS2)
@@ -244,29 +235,15 @@ static const bagl_element_t bagl_ui_idle_nanos[] = {
 // { {type, userid, x, y, width, height, stroke, radius, fill, fgcolor, bgcolor, font_id, icon_id},
 // text, touch_area_brim, overfgcolor, overbgcolor, tap, out, over,
 // },
-		{	{	BAGL_RECTANGLE, 0x00, 0, 0, 128, 32, 0, 0, BAGL_FILL, 0x000000, 0xFFFFFF, 0, 0 }, NULL, 0, 0, 0, NULL, NULL, NULL, },
+		{	{	BAGL_RECTANGLE, 0x00, 0, 0, 128, 32, 0, 0, BAGL_FILL, 0x000000, 0xFFFFFF, 0, 0 }, NULL },
 		/* center text */
-		{	{	BAGL_LABELINE, 0x02, 0, 12, 128, 11, 0, 0, 0, 0xFFFFFF, 0x000000, DEFAULT_FONT, 0 }, "Wake Up, NEO...", 0, 0, 0, NULL, NULL, NULL, },
+		{	{	BAGL_LABELINE, 0x02, 0, 12, 128, 11, 0, 0, 0, 0xFFFFFF, 0x000000, DEFAULT_FONT, 0 }, "Wake Up, NEO..." },
 		/* left icon is a X */
-		{	{	BAGL_ICON, 0x00, 3, 12, 7, 7, 0, 0, 0, 0xFFFFFF, 0x000000, 0, BAGL_GLYPH_ICON_CROSS }, NULL, 0, 0, 0, NULL, NULL, NULL, },
+		{	{	BAGL_ICON, 0x00, 3, 12, 7, 7, 0, 0, 0, 0xFFFFFF, 0x000000, 0, BAGL_GLYPH_ICON_CROSS }, NULL },
 		/* right icon is an eye. */
-		{	{	BAGL_ICON, 0x00, 117, 11, 7, 7, 0, 0, 0, 0xFFFFFF, 0x000000, 0, BAGL_GLYPH_ICON_EYE_BADGE }, NULL, 0, 0, 0, NULL, NULL, NULL, },
+		{	{	BAGL_ICON, 0x00, 117, 11, 7, 7, 0, 0, 0, 0xFFFFFF, 0x000000, 0, BAGL_GLYPH_ICON_EYE_BADGE }, NULL },
 
 /* */
-};
-
-/** UI struct for the idle screen, Blue.*/
-static const bagl_element_t bagl_ui_idle_blue[] = {
-    BG_FILL,
-    HEADER_TEXT("NEO"),
-    HEADER_BUTTON_R(DASHBOARD),
-    HEADER_BUTTON_L(SETTINGS),
-
-    BODY_NEO_ICON,
-    TEXT_CENTER(OPEN_TITLE, _Y(270), COLOUR_BLACK, FONT_L),
-    TEXT_CENTER(OPEN_MESSAGE1, _Y(310), COLOUR_BLACK, FONT_S),
-    TEXT_CENTER(OPEN_MESSAGE2, _Y(330), COLOUR_BLACK, FONT_S),
-    TEXT_CENTER(OPEN_MESSAGE3, _Y(450), COLOUR_GREY, FONT_XS)
 };
 
 /**
@@ -294,15 +271,15 @@ static const bagl_element_t bagl_ui_public_key_nanos_1[] = {
 // { {type, userid, x, y, width, height, stroke, radius, fill, fgcolor, bgcolor, font_id, icon_id},
 // text, touch_area_brim, overfgcolor, overbgcolor, tap, out, over,
 // },
-		{	{	BAGL_RECTANGLE, 0x00, 0, 0, 128, 32, 0, 0, BAGL_FILL, 0x000000, 0xFFFFFF, 0, 0 }, NULL, 0, 0, 0, NULL, NULL, NULL, },
+		{	{	BAGL_RECTANGLE, 0x00, 0, 0, 128, 32, 0, 0, BAGL_FILL, 0x000000, 0xFFFFFF, 0, 0 }, NULL },
 		/* first line of description of current public key */
-		{	{	BAGL_LABELINE, 0x02, 10, 10, 108, 11, 0x80 | 10, 0, 0, 0xFFFFFF, 0x000000, TX_DESC_FONT, 0 }, current_public_key[0], 0, 0, 0, NULL, NULL, NULL, },
+		{	{	BAGL_LABELINE, 0x02, 10, 10, 108, 11, 0x80 | 10, 0, 0, 0xFFFFFF, 0x000000, TX_DESC_FONT, 0 }, current_public_key[0] },
 		/* second line of description of current public key */
-		{	{	BAGL_LABELINE, 0x02, 10, 21, 108, 11, 0x80 | 10, 0, 0, 0xFFFFFF, 0x000000, TX_DESC_FONT, 0 }, current_public_key[1], 0, 0, 0, NULL, NULL, NULL, },
+		{	{	BAGL_LABELINE, 0x02, 10, 21, 108, 11, 0x80 | 10, 0, 0, 0xFFFFFF, 0x000000, TX_DESC_FONT, 0 }, current_public_key[1] },
 		/* right icon is a X */
-		{	{	BAGL_ICON, 0x00, 113, 12, 7, 7, 0, 0, 0, 0xFFFFFF, 0x000000, 0, BAGL_GLYPH_ICON_CROSS }, NULL, 0, 0, 0, NULL, NULL, NULL, },
+		{	{	BAGL_ICON, 0x00, 113, 12, 7, 7, 0, 0, 0, 0xFFFFFF, 0x000000, 0, BAGL_GLYPH_ICON_CROSS }, NULL },
 		/* left icon is down arrow  */
-		{	{	BAGL_ICON, 0x00, 3, 12, 7, 7, 0, 0, 0, 0xFFFFFF, 0x000000, 0, BAGL_GLYPH_ICON_DOWN }, NULL, 0, 0, 0, NULL, NULL, NULL, },
+		{	{	BAGL_ICON, 0x00, 3, 12, 7, 7, 0, 0, 0, 0xFFFFFF, 0x000000, 0, BAGL_GLYPH_ICON_DOWN }, NULL },
 /* */
 };
 
@@ -312,31 +289,17 @@ static const bagl_element_t bagl_ui_public_key_nanos_2[] = {
 // { {type, userid, x, y, width, height, stroke, radius, fill, fgcolor, bgcolor, font_id, icon_id},
 // text, touch_area_brim, overfgcolor, overbgcolor, tap, out, over,
 // },
-		{	{	BAGL_RECTANGLE, 0x00, 0, 0, 128, 32, 0, 0, BAGL_FILL, 0x000000, 0xFFFFFF, 0, 0 }, NULL, 0, 0, 0, NULL, NULL, NULL, },
+		{	{	BAGL_RECTANGLE, 0x00, 0, 0, 128, 32, 0, 0, BAGL_FILL, 0x000000, 0xFFFFFF, 0, 0 }, NULL },
 		/* second line of description of current public key */
-		{	{	BAGL_LABELINE, 0x02, 10, 10, 108, 11, 0x80 | 10, 0, 0, 0xFFFFFF, 0x000000, TX_DESC_FONT, 0 }, current_public_key[1], 0, 0, 0, NULL, NULL, NULL, },
+		{	{	BAGL_LABELINE, 0x02, 10, 10, 108, 11, 0x80 | 10, 0, 0, 0xFFFFFF, 0x000000, TX_DESC_FONT, 0 }, current_public_key[1] },
 		/* third line of description of current public key  */
-		{	{	BAGL_LABELINE, 0x02, 10, 21, 108, 11, 0x80 | 10, 0, 0, 0xFFFFFF, 0x000000, TX_DESC_FONT, 0 }, current_public_key[2], 0, 0, 0, NULL, NULL, NULL, },
+		{	{	BAGL_LABELINE, 0x02, 10, 21, 108, 11, 0x80 | 10, 0, 0, 0xFFFFFF, 0x000000, TX_DESC_FONT, 0 }, current_public_key[2] },
 		/* right icon is a X */
-		{	{	BAGL_ICON, 0x00, 113, 12, 7, 7, 0, 0, 0, 0xFFFFFF, 0x000000, 0, BAGL_GLYPH_ICON_CROSS }, NULL, 0, 0, 0, NULL, NULL, NULL, },
+		{	{	BAGL_ICON, 0x00, 113, 12, 7, 7, 0, 0, 0, 0xFFFFFF, 0x000000, 0, BAGL_GLYPH_ICON_CROSS }, NULL },
 		/* left icon is up arrow  */
-		{	{	BAGL_ICON, 0x00, 3, 12, 7, 7, 0, 0, 0, 0xFFFFFF, 0x000000, 0, BAGL_GLYPH_ICON_UP }, NULL, 0, 0, 0, NULL, NULL, NULL, },
+		{	{	BAGL_ICON, 0x00, 3, 12, 7, 7, 0, 0, 0, 0xFFFFFF, 0x000000, 0, BAGL_GLYPH_ICON_UP }, NULL },
 
 /* */
-};
-
-/** UI struct for the top "Sign Transaction" screen, Blue. */
-static const bagl_element_t bagl_ui_public_key_blue[] = {
-    BG_FILL,
-    HEADER_TEXT("Public Key"),
-    HEADER_BUTTON_L(LEFT),
-
-    TEXT_CENTER(current_public_key[0], _Y(240), COLOUR_BLACK, FONT_L),
-    TEXT_CENTER(current_public_key[1], _Y(270), COLOUR_BLACK, FONT_L),
-    TEXT_CENTER(current_public_key[2], _Y(300), COLOUR_BLACK, FONT_L),
-
-    TEXT_CENTER(FOOTER1, _Y(442), COLOUR_GREY, FONT_XS),
-    TEXT_CENTER(FOOTER2, _Y(458), COLOUR_GREY, FONT_XS)
 };
 
 /**
@@ -382,41 +345,18 @@ static const bagl_element_t bagl_ui_top_sign_nanos[] = {
 // { {type, userid, x, y, width, height, stroke, radius, fill, fgcolor, bgcolor, font_id, icon_id},
 // text, touch_area_brim, overfgcolor, overbgcolor, tap, out, over,
 // },
-	{	{	BAGL_RECTANGLE, 0x00, 0, 0, 128, 32, 0, 0, BAGL_FILL, 0x000000, 0xFFFFFF, 0, 0 }, NULL, 0, 0, 0, NULL, NULL, NULL, },
+	{	{	BAGL_RECTANGLE, 0x00, 0, 0, 128, 32, 0, 0, BAGL_FILL, 0x000000, 0xFFFFFF, 0, 0 }, NULL },
 	/* top left bar */
-	{	{	BAGL_RECTANGLE, 0x00, 3, 1, 12, 2, 0, 0, BAGL_FILL, 0xFFFFFF, 0x000000, 0, 0 }, NULL, 0, 0, 0, NULL, NULL, NULL, },
+	{	{	BAGL_RECTANGLE, 0x00, 3, 1, 12, 2, 0, 0, BAGL_FILL, 0xFFFFFF, 0x000000, 0, 0 }, NULL },
 	/* top right bar */
-	{	{	BAGL_RECTANGLE, 0x00, 113, 1, 12, 2, 0, 0, BAGL_FILL, 0xFFFFFF, 0x000000, 0, 0 }, NULL, 0, 0, 0, NULL, NULL, NULL, },
+	{	{	BAGL_RECTANGLE, 0x00, 113, 1, 12, 2, 0, 0, BAGL_FILL, 0xFFFFFF, 0x000000, 0, 0 }, NULL },
 	/* center text */
-	{	{	BAGL_LABELINE, 0x02, 0, 20, 128, 11, 0, 0, 0, 0xFFFFFF, 0x000000, DEFAULT_FONT, 0 }, "Sign Tx Now", 0, 0, 0, NULL, NULL, NULL, },
+	{	{	BAGL_LABELINE, 0x02, 0, 20, 128, 11, 0, 0, 0, 0xFFFFFF, 0x000000, DEFAULT_FONT, 0 }, "Sign Tx Now" },
 	/* left icon is up arrow  */
-	{	{	BAGL_ICON, 0x00, 3, 12, 7, 7, 0, 0, 0, 0xFFFFFF, 0x000000, 0, BAGL_GLYPH_ICON_UP }, NULL, 0, 0, 0, NULL, NULL, NULL, },
+	{	{	BAGL_ICON, 0x00, 3, 12, 7, 7, 0, 0, 0, 0xFFFFFF, 0x000000, 0, BAGL_GLYPH_ICON_UP }, NULL },
 	/* right icon is down arrow */
-	{	{	BAGL_ICON, 0x00, 117, 13, 8, 6, 0, 0, 0, 0xFFFFFF, 0x000000, 0, BAGL_GLYPH_ICON_DOWN }, NULL, 0, 0, 0, NULL, NULL, NULL, },
+	{	{	BAGL_ICON, 0x00, 117, 13, 8, 6, 0, 0, 0, 0xFFFFFF, 0x000000, 0, BAGL_GLYPH_ICON_DOWN }, NULL },
 /* */
-};
-
-/** UI struct for the top "Sign Transaction" screen, Blue. */
-static const bagl_element_t bagl_ui_top_sign_blue[] = {
-    BG_FILL,
-    HEADER_TEXT("Transaction"),
-
-    TEXT_CENTER(tx_desc[0][1], _Y(110), COLOUR_BLACK, FONT_L),
-
-    TEXT_CENTER("Amount", _Y(160), COLOUR_BLACK, FONT_L),
-    TEXT_CENTER(tx_desc[1][0], _Y(190), COLOUR_BLACK, FONT_M),
-    TEXT_CENTER(tx_desc[1][1], _Y(210), COLOUR_BLACK, FONT_M),
-
-    TEXT_CENTER("Destination Address", _Y(260), COLOUR_BLACK, FONT_L),
-    TEXT_CENTER(tx_desc[2][0], _Y(290), COLOUR_BLACK, FONT_M),
-    TEXT_CENTER(tx_desc[2][1], _Y(310), COLOUR_BLACK, FONT_M),
-    TEXT_CENTER(tx_desc[2][2], _Y(330), COLOUR_BLACK, FONT_M),
-
-    BODY_BUTTON("Deny", _X(30), _Y(390), COLOUR_RED, io_seproxyhal_touch_deny),
-    BODY_BUTTON("Approve", _X(170), _Y(390), COLOUR_GREEN_BUTTON, io_seproxyhal_touch_approve),
-
-    TEXT_CENTER(TX_FOOTER1, _Y(448), COLOUR_GREY, FONT_XS),
-    TEXT_CENTER(TX_FOOTER2, _Y(464), COLOUR_GREY, FONT_XS)
 };
 
 /**
@@ -446,17 +386,17 @@ static const bagl_element_t bagl_ui_sign_nanos[] = {
 // { {type, userid, x, y, width, height, stroke, radius, fill, fgcolor, bgcolor, font_id, icon_id},
 // text, touch_area_brim, overfgcolor, overbgcolor, tap, out, over,
 // },
-	{	{	BAGL_RECTANGLE, 0x00, 0, 0, 128, 32, 0, 0, BAGL_FILL, 0x000000, 0xFFFFFF, 0, 0 }, NULL, 0, 0, 0, NULL, NULL, NULL, },
+	{	{	BAGL_RECTANGLE, 0x00, 0, 0, 128, 32, 0, 0, BAGL_FILL, 0x000000, 0xFFFFFF, 0, 0 }, NULL },
 	/* top left bar */
-	{	{	BAGL_RECTANGLE, 0x00, 3, 1, 12, 2, 0, 0, BAGL_FILL, 0xFFFFFF, 0x000000, 0, 0 }, NULL, 0, 0, 0, NULL, NULL, NULL, },
+	{	{	BAGL_RECTANGLE, 0x00, 3, 1, 12, 2, 0, 0, BAGL_FILL, 0xFFFFFF, 0x000000, 0, 0 }, NULL },
 	/* top right bar */
-	{	{	BAGL_RECTANGLE, 0x00, 113, 1, 12, 2, 0, 0, BAGL_FILL, 0xFFFFFF, 0x000000, 0, 0 }, NULL, 0, 0, 0, NULL, NULL, NULL, },
+	{	{	BAGL_RECTANGLE, 0x00, 113, 1, 12, 2, 0, 0, BAGL_FILL, 0xFFFFFF, 0x000000, 0, 0 }, NULL },
 	/* center text */
-	{	{	BAGL_LABELINE, 0x02, 0, 20, 128, 11, 0, 0, 0, 0xFFFFFF, 0x000000, DEFAULT_FONT, 0 }, "Sign Tx", 0, 0, 0, NULL, NULL, NULL, },
+	{	{	BAGL_LABELINE, 0x02, 0, 20, 128, 11, 0, 0, 0, 0xFFFFFF, 0x000000, DEFAULT_FONT, 0 }, "Sign Tx" },
 	/* left icon is up arrow  */
-	{	{	BAGL_ICON, 0x00, 3, 12, 7, 7, 0, 0, 0, 0xFFFFFF, 0x000000, 0, BAGL_GLYPH_ICON_UP }, NULL, 0, 0, 0, NULL, NULL, NULL, },
+	{	{	BAGL_ICON, 0x00, 3, 12, 7, 7, 0, 0, 0, 0xFFFFFF, 0x000000, 0, BAGL_GLYPH_ICON_UP }, NULL },
 	/* right icon is down arrow */
-	{	{	BAGL_ICON, 0x00, 117, 13, 8, 6, 0, 0, 0, 0xFFFFFF, 0x000000, 0, BAGL_GLYPH_ICON_DOWN }, NULL, 0, 0, 0, NULL, NULL, NULL, },
+	{	{	BAGL_ICON, 0x00, 117, 13, 8, 6, 0, 0, 0, 0xFFFFFF, 0x000000, 0, BAGL_GLYPH_ICON_DOWN }, NULL },
 /* */
 };
 
@@ -487,16 +427,16 @@ static const bagl_element_t bagl_ui_deny_nanos[] = {
 // { {type, userid, x, y, width, height, stroke, radius, fill, fgcolor, bgcolor, font_id, icon_id},
 // text, touch_area_brim, overfgcolor, overbgcolor, tap, out, over,
 // },
-	{	{	BAGL_RECTANGLE, 0x00, 0, 0, 128, 32, 0, 0, BAGL_FILL, 0x000000, 0xFFFFFF, 0, 0 }, NULL, 0, 0, 0, NULL, NULL, NULL, },
+	{	{	BAGL_RECTANGLE, 0x00, 0, 0, 128, 32, 0, 0, BAGL_FILL, 0x000000, 0xFFFFFF, 0, 0 }, NULL },
 	/* top left bar */
-	{	{	BAGL_RECTANGLE, 0x00, 3, 1, 12, 2, 0, 0, BAGL_FILL, 0xFFFFFF, 0x000000, 0, 0 }, NULL, 0, 0, 0, NULL, NULL, NULL, },
+	{	{	BAGL_RECTANGLE, 0x00, 3, 1, 12, 2, 0, 0, BAGL_FILL, 0xFFFFFF, 0x000000, 0, 0 }, NULL },
 	/* top right bar */
-	{	{	BAGL_RECTANGLE, 0x00, 113, 1, 12, 2, 0, 0, BAGL_FILL, 0xFFFFFF, 0x000000, 0, 0 }, NULL, 0, 0, 0, NULL, NULL, NULL, },
+	{	{	BAGL_RECTANGLE, 0x00, 113, 1, 12, 2, 0, 0, BAGL_FILL, 0xFFFFFF, 0x000000, 0, 0 }, NULL },
 	/* center text */
-	{	{	BAGL_LABELINE, 0x02, 0, 20, 128, 11, 0, 0, 0, 0xFFFFFF, 0x000000, DEFAULT_FONT, 0 }, "Deny Tx", 0, 0, 0, NULL, NULL, NULL, },
+	{	{	BAGL_LABELINE, 0x02, 0, 20, 128, 11, 0, 0, 0, 0xFFFFFF, 0x000000, DEFAULT_FONT, 0 }, "Deny Tx" },
 	/* left icon is up arrow  */
-	{	{	BAGL_ICON, 0x00, 3, 12, 7, 7, 0, 0, 0, 0xFFFFFF, 0x000000, 0, BAGL_GLYPH_ICON_UP }, NULL, 0, 0, 0, NULL, NULL, NULL, },
-	{	{	BAGL_ICON, 0x00, 117, 13, 7, 7, 0, 0, 0, 0xFFFFFF, 0x000000, 0, BAGL_GLYPH_ICON_DOWN }, NULL, 0, 0, 0, NULL, NULL, NULL, },
+	{	{	BAGL_ICON, 0x00, 3, 12, 7, 7, 0, 0, 0, 0xFFFFFF, 0x000000, 0, BAGL_GLYPH_ICON_UP }, NULL },
+	{	{	BAGL_ICON, 0x00, 117, 13, 7, 7, 0, 0, 0, 0xFFFFFF, 0x000000, 0, BAGL_GLYPH_ICON_DOWN }, NULL },
 /* */
 };
 
@@ -527,17 +467,17 @@ static const bagl_element_t bagl_ui_tx_desc_nanos_1[] = {
 // { {type, userid, x, y, width, height, stroke, radius, fill, fgcolor, bgcolor, font_id, icon_id},
 // text, touch_area_brim, overfgcolor, overbgcolor, tap, out, over,
 // },
-	{	{	BAGL_RECTANGLE, 0x00, 0, 0, 128, 32, 0, 0, BAGL_FILL, 0x000000, 0xFFFFFF, 0, 0 }, NULL, 0, 0, 0, NULL, NULL, NULL, },
+	{	{	BAGL_RECTANGLE, 0x00, 0, 0, 128, 32, 0, 0, BAGL_FILL, 0x000000, 0xFFFFFF, 0, 0 }, NULL },
 	/* screen 1 number */
-	{	{	BAGL_LABELINE, 0x02, 0, 10, 20, 11, 0x80 | 10, 0, 0, 0xFFFFFF, 0x000000, TX_DESC_FONT, 0 }, "1/2", 0, 0, 0, NULL, NULL, NULL, },
+	{	{	BAGL_LABELINE, 0x02, 0, 10, 20, 11, 0x80 | 10, 0, 0, 0xFFFFFF, 0x000000, TX_DESC_FONT, 0 }, "1/2" },
 	/* first line of description of current screen */
-	{	{	BAGL_LABELINE, 0x02, 10, 15, 108, 11, 0x80 | 10, 0, 0, 0xFFFFFF, 0x000000, TX_DESC_FONT, 0 }, curr_tx_desc[0], 0, 0, 0, NULL, NULL, NULL, },
+	{	{	BAGL_LABELINE, 0x02, 10, 15, 108, 11, 0x80 | 10, 0, 0, 0xFFFFFF, 0x000000, TX_DESC_FONT, 0 }, curr_tx_desc[0] },
 	/* second line of description of current screen */
-	{	{	BAGL_LABELINE, 0x02, 10, 26, 108, 11, 0x80 | 10, 0, 0, 0xFFFFFF, 0x000000, TX_DESC_FONT, 0 }, curr_tx_desc[1], 0, 0, 0, NULL, NULL, NULL, },
+	{	{	BAGL_LABELINE, 0x02, 10, 26, 108, 11, 0x80 | 10, 0, 0, 0xFFFFFF, 0x000000, TX_DESC_FONT, 0 }, curr_tx_desc[1] },
 	/* left icon is up arrow  */
-	{	{	BAGL_ICON, 0x00, 3, 12, 7, 7, 0, 0, 0, 0xFFFFFF, 0x000000, 0, BAGL_GLYPH_ICON_UP }, NULL, 0, 0, 0, NULL, NULL, NULL, },
+	{	{	BAGL_ICON, 0x00, 3, 12, 7, 7, 0, 0, 0, 0xFFFFFF, 0x000000, 0, BAGL_GLYPH_ICON_UP }, NULL },
 	/* right icon is down arrow */
-	{	{	BAGL_ICON, 0x00, 117, 13, 8, 6, 0, 0, 0, 0xFFFFFF, 0x000000, 0, BAGL_GLYPH_ICON_DOWN }, NULL, 0, 0, 0, NULL, NULL, NULL, },
+	{	{	BAGL_ICON, 0x00, 117, 13, 8, 6, 0, 0, 0, 0xFFFFFF, 0x000000, 0, BAGL_GLYPH_ICON_DOWN }, NULL },
 /* */
 };
 
@@ -546,17 +486,17 @@ static const bagl_element_t bagl_ui_tx_desc_nanos_2[] = {
 // { {type, userid, x, y, width, height, stroke, radius, fill, fgcolor, bgcolor, font_id, icon_id},
 // text, touch_area_brim, overfgcolor, overbgcolor, tap, out, over,
 // },
-	{	{	BAGL_RECTANGLE, 0x00, 0, 0, 128, 32, 0, 0, BAGL_FILL, 0x000000, 0xFFFFFF, 0, 0 }, NULL, 0, 0, 0, NULL, NULL, NULL, },
+	{	{	BAGL_RECTANGLE, 0x00, 0, 0, 128, 32, 0, 0, BAGL_FILL, 0x000000, 0xFFFFFF, 0, 0 }, NULL },
 	/* screen 2 number */
-	{	{	BAGL_LABELINE, 0x02, 0, 10, 20, 11, 0x80 | 10, 0, 0, 0xFFFFFF, 0x000000, TX_DESC_FONT, 0 }, "2/2", 0, 0, 0, NULL, NULL, NULL, },
+	{	{	BAGL_LABELINE, 0x02, 0, 10, 20, 11, 0x80 | 10, 0, 0, 0xFFFFFF, 0x000000, TX_DESC_FONT, 0 }, "2/2" },
 	/* second line of description of current screen */
-	{	{	BAGL_LABELINE, 0x02, 10, 15, 108, 11, 0x80 | 10, 0, 0, 0xFFFFFF, 0x000000, TX_DESC_FONT, 0 }, curr_tx_desc[1], 0, 0, 0, NULL, NULL, NULL, },
+	{	{	BAGL_LABELINE, 0x02, 10, 15, 108, 11, 0x80 | 10, 0, 0, 0xFFFFFF, 0x000000, TX_DESC_FONT, 0 }, curr_tx_desc[1] },
 	/* third line of description of current screen  */
-	{	{	BAGL_LABELINE, 0x02, 10, 26, 108, 11, 0x80 | 10, 0, 0, 0xFFFFFF, 0x000000, TX_DESC_FONT, 0 }, curr_tx_desc[2], 0, 0, 0, NULL, NULL, NULL, },
+	{	{	BAGL_LABELINE, 0x02, 10, 26, 108, 11, 0x80 | 10, 0, 0, 0xFFFFFF, 0x000000, TX_DESC_FONT, 0 }, curr_tx_desc[2] },
 	/* left icon is up arrow  */
-	{	{	BAGL_ICON, 0x00, 3, 12, 7, 7, 0, 0, 0, 0xFFFFFF, 0x000000, 0, BAGL_GLYPH_ICON_UP }, NULL, 0, 0, 0, NULL, NULL, NULL, },
+	{	{	BAGL_ICON, 0x00, 3, 12, 7, 7, 0, 0, 0, 0xFFFFFF, 0x000000, 0, BAGL_GLYPH_ICON_UP }, NULL },
 	/* right icon is down arrow */
-	{	{	BAGL_ICON, 0x00, 117, 13, 8, 6, 0, 0, 0, 0xFFFFFF, 0x000000, 0, BAGL_GLYPH_ICON_DOWN }, NULL, 0, 0, 0, NULL, NULL, NULL, },
+	{	{	BAGL_ICON, 0x00, 117, 13, 8, 6, 0, 0, 0, 0xFFFFFF, 0x000000, 0, BAGL_GLYPH_ICON_DOWN }, NULL },
 /* */
 };
 
@@ -760,18 +700,6 @@ static const bagl_element_t *io_seproxyhal_touch_deny(const bagl_element_t *e) {
 	return 0; // do not redraw the widget
 }
 
-static unsigned int bagl_ui_idle_blue_button(unsigned int button_mask, unsigned int button_mask_counter) {
-	return 0;
-}
-
-static unsigned int bagl_ui_public_key_blue_button(unsigned int button_mask, unsigned int button_mask_counter) {
-    return 0;
-}
-
-static unsigned int bagl_ui_top_sign_blue_button(unsigned int button_mask, unsigned int button_mask_counter) {
-	return 0;
-}
-
 /** show the public key screen */
 void ui_public_key_1(void) {
 	uiState = UI_PUBLIC_KEY_1;
@@ -794,9 +722,7 @@ void ui_public_key_2(void) {
 void ui_idle(void) {
 	uiState = UI_IDLE;
 
-#if defined(TARGET_BLUE)
-    UX_DISPLAY(bagl_ui_idle_blue, NULL);
-#elif defined(TARGET_NANOS)
+#if defined(TARGET_NANOS)
     UX_DISPLAY(bagl_ui_idle_nanos, NULL);
 #elif defined(TARGET_NANOX) || defined(TARGET_NANOS2)
     // reserve a display stack slot if none yet
@@ -836,9 +762,7 @@ static void ui_sign(void) {
 void ui_top_sign(void) {
 	uiState = UI_TOP_SIGN;
 
-#if defined(TARGET_BLUE)
-    UX_DISPLAY(bagl_ui_top_sign_blue, NULL);
-#elif defined(TARGET_NANOS)
+#if defined(TARGET_NANOS)
     UX_DISPLAY(bagl_ui_top_sign_nanos, NULL);
 #elif defined(TARGET_NANOX) || defined(TARGET_NANOS2)
     // reserve a display stack slot if none yet
@@ -863,14 +787,6 @@ unsigned int get_apdu_buffer_length() {
 	return len0;
 }
 
-/** set the blue menu bar colour */
-void ui_set_menu_bar_colour(void) {
-#if defined(TARGET_BLUE)
-    UX_SET_STATUS_BAR_COLOR(COLOUR_WHITE, COLOUR_NEO_GREEN);
-    clear_tx_desc();
-#endif // #if TARGET_ID
-}
-
 /** sets the tx_desc variables to no information */
 static void clear_tx_desc(void) {
     for(uint8_t i=0; i<MAX_TX_TEXT_SCREENS; i++) {
@@ -882,25 +798,4 @@ static void clear_tx_desc(void) {
 
     strncpy(tx_desc[1][0], NO_INFO, sizeof(NO_INFO));
     strncpy(tx_desc[2][0], NO_INFO, sizeof(NO_INFO));
-}
-
-/** returns to dashboard */
-static const bagl_element_t *bagl_ui_DASHBOARD_blue_button(const bagl_element_t *e)
-{
-    os_sched_exit(0);
-    return NULL;
-}
-
-/** goes to settings menu (pubkey display) on blue */
-static const bagl_element_t *bagl_ui_SETTINGS_blue_button(const bagl_element_t *e)
-{
-    UX_DISPLAY(bagl_ui_public_key_blue, NULL);
-    return NULL;
-}
-
-/** returns to NEO app on blue */
-static const bagl_element_t *bagl_ui_LEFT_blue_button(const bagl_element_t *e)
-{
-    ui_idle();
-    return NULL;
 }

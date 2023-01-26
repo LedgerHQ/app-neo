@@ -448,9 +448,6 @@ __attribute__((section(".boot"))) int main(void) {
 					// init the public key display to "no public key".
 					display_no_public_key();
 
-					// set menu bar colour for blue
-					ui_set_menu_bar_colour();
-
 					// show idle screen.
 					ui_idle();
 
