@@ -1,10 +1,8 @@
 .DS_Store
 
-/bin/
-/debug/
-/dep/
-/obj/
+bin/
+debug/
+dep/
+obj/
+build/
 
-# ignore compiled glyphs
-src/glyphs.c
-src/glyphs.h

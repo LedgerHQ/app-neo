@@ -1,0 +1,4 @@
+eth-keys==0.3.1
+pytest
+ragger[speculos]>=1.6.0
+ragger[ledgerwallet]>=1.6.0
