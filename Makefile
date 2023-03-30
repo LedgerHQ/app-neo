@@ -139,4 +139,4 @@ include $(BOLOS_SDK)/Makefile.glyphs
 include $(BOLOS_SDK)/Makefile.rules
 
 listvariants:
-	@echo VARIANTS neo
+	@echo VARIANTS COIN neo
