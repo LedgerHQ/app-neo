@@ -30,14 +30,15 @@ extern char timer_desc[MAX_TIMER_TEXT_WIDTH];
 /** for signing, indicates this is the last part of the transaction. */
 #define P1_LAST 0x80
 
-/** for signing, indicates this is not the last part of the transaction, there are more parts coming. */
+/** for signing, indicates this is not the last part of the transaction, there are more parts
+ * coming. */
 #define P1_MORE 0x00
 
 /** length of BIP44 path */
 #define BIP44_PATH_LEN 5
 
 /** length of BIP44 path, in bytes */
-#define  BIP44_BYTE_LENGTH (BIP44_PATH_LEN * sizeof(unsigned int))
+#define BIP44_BYTE_LENGTH (BIP44_PATH_LEN * sizeof(unsigned int))
 
 /**
  * Nano S has 320 KB flash, 10 KB RAM, uses a ST31H320 chip.
@@ -57,7 +58,7 @@ extern char timer_desc[MAX_TIMER_TEXT_WIDTH];
 // In stax we use only one string, not an array of three short ones,
 // use this trick so that we can copy the whole value in one array
 // slot without having to put conditional compilation everywhere...
-#define MAX_TX_TEXT_WIDTH 18*MAX_TX_TEXT_LINES 
+#define MAX_TX_TEXT_WIDTH 18 * MAX_TX_TEXT_LINES
 #endif
 /** max number of screens to display. */
 #define MAX_TX_TEXT_SCREENS 9
@@ -73,7 +74,15 @@ extern char timer_desc[MAX_TIMER_TEXT_WIDTH];
 
 /** UI currently displayed */
 enum UI_STATE {
-	UI_INIT, UI_IDLE, UI_TOP_SIGN, UI_TX_DESC_1,UI_TX_DESC_2, UI_SIGN, UI_DENY, UI_PUBLIC_KEY_1, UI_PUBLIC_KEY_2
+    UI_INIT,
+    UI_IDLE,
+    UI_TOP_SIGN,
+    UI_TX_DESC_1,
+    UI_TX_DESC_2,
+    UI_SIGN,
+    UI_DENY,
+    UI_PUBLIC_KEY_1,
+    UI_PUBLIC_KEY_2
 };
 
 /** UI state enum */
@@ -116,7 +125,7 @@ extern char curr_tx_desc[MAX_TX_TEXT_LINES][MAX_TX_TEXT_WIDTH];
 extern char address58[MAX_TX_TEXT_LINES][MAX_TX_TEXT_WIDTH];
 
 /** process a partial transaction */
-const void * io_seproxyhal_touch_approve(const void *e);
+const void *io_seproxyhal_touch_approve(const void *e);
 
 /** show the idle UI */
 void ui_idle(void);
@@ -127,4 +136,4 @@ void ui_top_sign(void);
 /** return the length of the communication buffer */
 unsigned int get_apdu_buffer_length();
 
-#endif // UI_H
+#endif  // UI_H
