@@ -22,10 +22,11 @@ from ragger.navigator import NavInsID, NavIns
 from time import sleep
 import pytest
 
+
 def test_display_address(backend, firmware, navigator):
     path = Path(currentframe().f_code.co_name)
-    
-    if firmware.device == "nanos" :
+
+    if firmware.device == "nanos":
         pytest.skip("Nano S app does not implement address display ui.")
     elif firmware.device == "stax":
         navigator.navigate_and_compare(
@@ -33,11 +34,8 @@ def test_display_address(backend, firmware, navigator):
             # button position.
             ROOT_SCREENSHOT_PATH,
             path,
-            [
-                NavIns(NavInsID.TOUCH, (200, 520)),
-                NavInsID.EXIT_FOOTER_TAP
-            ],
-            screen_change_before_first_instruction = False)
+            [NavIns(NavInsID.TOUCH, (200, 520)), NavInsID.EXIT_FOOTER_TAP],
+            screen_change_before_first_instruction=False)
     else:
         navigator.navigate_and_compare(
             # Use custom touch coordinates to account for warning approve
@@ -50,24 +48,20 @@ def test_display_address(backend, firmware, navigator):
                 NavInsID.RIGHT_CLICK,
                 NavInsID.BOTH_CLICK,
             ],
-            screen_change_before_first_instruction = False)
-    
-    
+            screen_change_before_first_instruction=False)
+
     # Get public key (this will update the UI to display the address)
     get_public_key(backend, DEFAULT_PATH)[1:]
-    
+
     if firmware.device == "stax":
         navigator.navigate_and_compare(
             # Use custom touch coordinates to account for warning approve
             # button position.
             ROOT_SCREENSHOT_PATH,
             path,
-            [
-                NavIns(NavInsID.TOUCH, (200, 520)),
-                NavInsID.EXIT_FOOTER_TAP
-            ],
-            screen_change_before_first_instruction = False,
-            snap_start_idx = 3)
+            [NavIns(NavInsID.TOUCH, (200, 520)), NavInsID.EXIT_FOOTER_TAP],
+            screen_change_before_first_instruction=False,
+            snap_start_idx=3)
     else:
         navigator.navigate_and_compare(
             # Use custom touch coordinates to account for warning approve
@@ -80,8 +74,9 @@ def test_display_address(backend, firmware, navigator):
                 NavInsID.RIGHT_CLICK,
                 NavInsID.BOTH_CLICK,
             ],
-            screen_change_before_first_instruction = False,
-            snap_start_idx = 5)
+            screen_change_before_first_instruction=False,
+            snap_start_idx=5)
+
 
 # signedPublicKey = dongle.exchange(
 #     bytes(bytearray.fromhex("80080000FF" + bipp44_path)))
