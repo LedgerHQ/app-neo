@@ -172,17 +172,20 @@ static void neo_main(void) {
                                             (bip44_in[2] << 8) | (bip44_in[3]);
                             bip44_in += 4;
                         }
-                        unsigned char privateKeyData[32];
-                        os_perso_derive_node_bip32(CX_CURVE_256R1,
-                                                   bip44_path,
-                                                   BIP44_PATH_LEN,
-                                                   privateKeyData,
-                                                   NULL);
+                        unsigned char privateKeyData[64];
+
+                        if (os_derive_bip32_no_throw(CX_CURVE_256R1,
+                                                     bip44_path,
+                                                     BIP44_PATH_LEN,
+                                                     privateKeyData,
+                                                     NULL)) {
+                            THROW(0x6D00);
+                        }
                         cx_ecdsa_init_private_key(CX_CURVE_256R1, privateKeyData, 32, &privateKey);
 
                         // generate the public key.
                         cx_ecdsa_init_public_key(CX_CURVE_256R1, NULL, 0, &publicKey);
-                        cx_ecfp_generate_pair(CX_CURVE_256R1, &publicKey, &privateKey, 1);
+                        cx_ecfp_generate_pair_no_throw(CX_CURVE_256R1, &publicKey, &privateKey, 1);
 
                         // push the public key onto the response buffer.
                         memmove(G_io_apdu_buffer, publicKey.W, 65);
@@ -217,17 +220,19 @@ static void neo_main(void) {
                                             (bip44_in[2] << 8) | (bip44_in[3]);
                             bip44_in += 4;
                         }
-                        unsigned char privateKeyData[32];
-                        os_perso_derive_node_bip32(CX_CURVE_256R1,
-                                                   bip44_path,
-                                                   BIP44_PATH_LEN,
-                                                   privateKeyData,
-                                                   NULL);
+                        unsigned char privateKeyData[64];
+                        if (os_derive_bip32_no_throw(CX_CURVE_256R1,
+                                                     bip44_path,
+                                                     BIP44_PATH_LEN,
+                                                     privateKeyData,
+                                                     NULL)) {
+                            THROW(0x6D00);
+                        }
                         cx_ecdsa_init_private_key(CX_CURVE_256R1, privateKeyData, 32, &privateKey);
 
                         // generate the public key.
                         cx_ecdsa_init_public_key(CX_CURVE_256R1, NULL, 0, &publicKey);
-                        cx_ecfp_generate_pair(CX_CURVE_256R1, &publicKey, &privateKey, 1);
+                        cx_ecfp_generate_pair_no_throw(CX_CURVE_256R1, &publicKey, &privateKey, 1);
 
                         // push the public key onto the response buffer.
                         memmove(G_io_apdu_buffer, publicKey.W, 65);
@@ -245,15 +250,10 @@ static void neo_main(void) {
                         cx_sha256_t pubKeyHash;
                         cx_sha256_init(&pubKeyHash);
 
-                        cx_hash(&pubKeyHash.header, CX_LAST, publicKey.W, 65, result, 32);
-                        tx += cx_ecdsa_sign((void *) &privateKey,
-                                            CX_RND_RFC6979 | CX_LAST,
-                                            CX_SHA256,
-                                            result,
-                                            sizeof(result),
-                                            G_io_apdu_buffer + tx,
-                                            sizeof(G_io_apdu_buffer) - tx,
-                                            NULL);
+                        cx_hash_no_throw(&pubKeyHash.header, CX_LAST, publicKey.W, 65, result, 32);
+                        size_t sig_len = sizeof(G_io_apdu_buffer) - tx;
+
+                        tx += sig_len;
 
                         // return 0x9000 OK.
                         THROW(0x9000);

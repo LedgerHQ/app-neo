@@ -392,14 +392,19 @@ static void to_address(char *dest, unsigned int dest_len, const unsigned char *s
 
     // do a sha256 hash of the address twice.
     cx_sha256_init(&address_hash);
-    cx_hash(&address_hash.header, CX_LAST, address, SCRIPT_HASH_LEN + 1, address_hash_result_0, 32);
+    cx_hash_no_throw(&address_hash.header,
+                     CX_LAST,
+                     address,
+                     SCRIPT_HASH_LEN + 1,
+                     address_hash_result_0,
+                     32);
     cx_sha256_init(&address_hash);
-    cx_hash(&address_hash.header,
-            CX_LAST,
-            address_hash_result_0,
-            SHA256_HASH_LEN,
-            address_hash_result_1,
-            32);
+    cx_hash_no_throw(&address_hash.header,
+                     CX_LAST,
+                     address_hash_result_0,
+                     SHA256_HASH_LEN,
+                     address_hash_result_1,
+                     32);
 
     // add the first bytes of the hash as a checksum at the end of the address.
     memmove(address + 1 + SCRIPT_HASH_LEN, address_hash_result_1, SCRIPT_HASH_CHECKSUM_LEN);
@@ -724,12 +729,14 @@ unsigned char display_tx_desc() {
     unsigned char asset_id[ASSET_ID_LEN];
     unsigned char value[VALUE_LEN];
     unsigned char script_hash[SCRIPT_HASH_LEN];
+#if SHOW_SCRIPT_HASH
     unsigned int script_hash_len0 = 6;
     unsigned int script_hash_len1 = 7;
     unsigned int script_hash_len2 = 7;
     unsigned char *script_hash0 = script_hash;
     unsigned char *script_hash1 = script_hash + script_hash_len0;
     unsigned char *script_hash2 = script_hash + script_hash_len0 + script_hash_len1;
+#endif
 
     char address_base58[ADDRESS_BASE58_LEN];
 #ifdef HAVE_BAGL
@@ -783,23 +790,23 @@ unsigned char display_tx_desc() {
         }
 
         // script hash screen
-        if (SHOW_SCRIPT_HASH) {
-            if (scr_ix < MAX_TX_TEXT_SCREENS) {
-                hex_buffer_len = min(MAX_HEX_BUFFER_LEN, script_hash_len0) * 2;
-                to_hex(hex_buffer, script_hash0, hex_buffer_len);
-                memmove(tx_desc[scr_ix][0], hex_buffer, hex_buffer_len);
+#if SHOW_SCRIPT_HASH
+        if (scr_ix < MAX_TX_TEXT_SCREENS) {
+            hex_buffer_len = min(MAX_HEX_BUFFER_LEN, script_hash_len0) * 2;
+            to_hex(hex_buffer, script_hash0, hex_buffer_len);
+            memmove(tx_desc[scr_ix][0], hex_buffer, hex_buffer_len);
 
-                hex_buffer_len = min(MAX_HEX_BUFFER_LEN, script_hash_len1) * 2;
-                to_hex(hex_buffer, script_hash1, hex_buffer_len);
-                memmove(tx_desc[scr_ix][1], hex_buffer, hex_buffer_len);
+            hex_buffer_len = min(MAX_HEX_BUFFER_LEN, script_hash_len1) * 2;
+            to_hex(hex_buffer, script_hash1, hex_buffer_len);
+            memmove(tx_desc[scr_ix][1], hex_buffer, hex_buffer_len);
 
-                hex_buffer_len = min(MAX_HEX_BUFFER_LEN, script_hash_len2) * 2;
-                to_hex(hex_buffer, script_hash2, hex_buffer_len);
-                memmove(tx_desc[scr_ix][2], hex_buffer, hex_buffer_len);
+            hex_buffer_len = min(MAX_HEX_BUFFER_LEN, script_hash_len2) * 2;
+            to_hex(hex_buffer, script_hash2, hex_buffer_len);
+            memmove(tx_desc[scr_ix][2], hex_buffer, hex_buffer_len);
 
-                scr_ix++;
-            }
+            scr_ix++;
         }
+#endif
 
         // address screen
         if (scr_ix < MAX_TX_TEXT_SCREENS) {
@@ -844,9 +851,9 @@ void public_key_hash160(unsigned char *in, unsigned short inlen, unsigned char *
     unsigned char buffer[32];
 
     cx_sha256_init(&u.shasha);
-    cx_hash(&u.shasha.header, CX_LAST, in, inlen, buffer, 32);
+    cx_hash_no_throw(&u.shasha.header, CX_LAST, in, inlen, buffer, 32);
     cx_ripemd160_init(&u.riprip);
-    cx_hash(&u.riprip.header, CX_LAST, buffer, 32, out, 20);
+    cx_hash_no_throw(&u.riprip.header, CX_LAST, buffer, 32, out, 20);
 }
 
 void display_public_key(const unsigned char *public_key) {

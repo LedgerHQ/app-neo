@@ -796,7 +796,7 @@ const void *io_seproxyhal_touch_approve(const void *e) {
     if (G_io_apdu_buffer[2] == P1_LAST) {
         unsigned int raw_tx_len_except_bip44 = raw_tx_len - BIP44_BYTE_LENGTH;
         // Update and sign the hash
-        cx_hash(&hash.header, 0, raw_tx, raw_tx_len_except_bip44, NULL, 0);
+        cx_hash_no_throw(&hash.header, 0, raw_tx, raw_tx_len_except_bip44, NULL, 0);
 
         unsigned char *bip44_in = raw_tx + raw_tx_len_except_bip44;
 
@@ -810,12 +810,14 @@ const void *io_seproxyhal_touch_approve(const void *e) {
             bip44_in += 4;
         }
 
-        unsigned char privateKeyData[32];
-        os_perso_derive_node_bip32(CX_CURVE_256R1,
-                                   bip44_path,
-                                   BIP44_PATH_LEN,
-                                   privateKeyData,
-                                   NULL);
+        unsigned char privateKeyData[64];
+        if (os_derive_bip32_no_throw(CX_CURVE_256R1,
+                                     bip44_path,
+                                     BIP44_PATH_LEN,
+                                     privateKeyData,
+                                     NULL)) {
+            THROW(0x6D00);
+        }
 
         cx_ecfp_private_key_t privateKey;
         cx_ecdsa_init_private_key(CX_CURVE_256R1, privateKeyData, 32, &privateKey);
@@ -823,16 +825,20 @@ const void *io_seproxyhal_touch_approve(const void *e) {
         // Hash is finalized, send back the signature
         unsigned char result[32];
 
-        cx_hash(&hash.header, CX_LAST, G_io_apdu_buffer, 0, result, 32);
+        cx_hash_no_throw(&hash.header, CX_LAST, G_io_apdu_buffer, 0, result, 32);
 #if CX_APILEVEL >= 8
-        tx = cx_ecdsa_sign((void *) &privateKey,
-                           CX_RND_RFC6979 | CX_LAST,
-                           CX_SHA256,
-                           result,
-                           sizeof(result),
-                           G_io_apdu_buffer,
-                           sizeof(G_io_apdu_buffer),
-                           NULL);
+        size_t sig_len = sizeof(G_io_apdu_buffer);
+        if (cx_ecdsa_sign_no_throw((void *) &privateKey,
+                                   CX_RND_RFC6979 | CX_LAST,
+                                   CX_SHA256,
+                                   result,
+                                   sizeof(result),
+                                   G_io_apdu_buffer,
+                                   &sig_len,
+                                   NULL) != CX_OK) {
+            THROW(0x6D00);
+        }
+        tx = sig_len;
 #else
         tx = cx_ecdsa_sign((void *) &privateKey,
                            CX_RND_RFC6979 | CX_LAST,
