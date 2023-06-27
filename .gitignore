@@ -5,4 +5,5 @@ debug/
 dep/
 obj/
 build/
+test/snapshots-tmp
 
