@@ -29,14 +29,15 @@ extern char timer_desc[MAX_TIMER_TEXT_WIDTH];
 /** for signing, indicates this is the last part of the transaction. */
 #define P1_LAST 0x80
 
-/** for signing, indicates this is not the last part of the transaction, there are more parts coming. */
+/** for signing, indicates this is not the last part of the transaction, there are more parts
+ * coming. */
 #define P1_MORE 0x00
 
 /** length of BIP44 path */
 #define BIP44_PATH_LEN 5
 
 /** length of BIP44 path, in bytes */
-#define  BIP44_BYTE_LENGTH (BIP44_PATH_LEN * sizeof(unsigned int))
+#define BIP44_BYTE_LENGTH (BIP44_PATH_LEN * sizeof(unsigned int))
 
 /**
  * Nano S has 320 KB flash, 10 KB RAM, uses a ST31H320 chip.
@@ -66,7 +67,15 @@ extern char timer_desc[MAX_TIMER_TEXT_WIDTH];
 
 /** UI currently displayed */
 enum UI_STATE {
-	UI_INIT, UI_IDLE, UI_TOP_SIGN, UI_TX_DESC_1,UI_TX_DESC_2, UI_SIGN, UI_DENY, UI_PUBLIC_KEY_1, UI_PUBLIC_KEY_2
+    UI_INIT,
+    UI_IDLE,
+    UI_TOP_SIGN,
+    UI_TX_DESC_1,
+    UI_TX_DESC_2,
+    UI_SIGN,
+    UI_DENY,
+    UI_PUBLIC_KEY_1,
+    UI_PUBLIC_KEY_2
 };
 
 /** UI state enum */
@@ -109,7 +118,7 @@ extern char curr_tx_desc[MAX_TX_TEXT_LINES][MAX_TX_TEXT_WIDTH];
 extern char current_public_key[MAX_TX_TEXT_LINES][MAX_TX_TEXT_WIDTH];
 
 /** process a partial transaction */
-const bagl_element_t * io_seproxyhal_touch_approve(const bagl_element_t *e);
+const bagl_element_t *io_seproxyhal_touch_approve(const bagl_element_t *e);
 
 /** show the idle UI */
 void ui_idle(void);
@@ -120,7 +129,4 @@ void ui_top_sign(void);
 /** return the length of the communication buffer */
 unsigned int get_apdu_buffer_length();
 
-/** sets menu bar colour for blue */
-void ui_set_menu_bar_colour(void);
-
-#endif // UI_H
+#endif  // UI_H
