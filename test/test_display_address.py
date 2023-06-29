@@ -15,7 +15,7 @@
 # *  See the License for the specific language governing permissions and
 # *  limitations under the License.
 # ********************************************************************************
-from utils import get_public_key, DEFAULT_PATH, ROOT_SCREENSHOT_PATH
+from utils import get_signed_public_key_and_validate, DEFAULT_PATH, ROOT_SCREENSHOT_PATH
 from pathlib import Path
 from inspect import currentframe
 from ragger.navigator import NavInsID, NavIns
@@ -51,7 +51,7 @@ def test_display_address(backend, firmware, navigator):
             screen_change_before_first_instruction=False)
 
     # Get public key (this will update the UI to display the address)
-    get_public_key(backend, DEFAULT_PATH)[1:]
+    get_signed_public_key_and_validate(backend, DEFAULT_PATH)[1:]
 
     if firmware.device == "stax":
         navigator.navigate_and_compare(
@@ -76,11 +76,3 @@ def test_display_address(backend, firmware, navigator):
             ],
             screen_change_before_first_instruction=False,
             snap_start_idx=5)
-
-
-# signedPublicKey = dongle.exchange(
-#     bytes(bytearray.fromhex("80080000FF" + bipp44_path)))
-# print("signedPublicKey [" + str(len(signedPublicKey)) +
-#       "] " + signedPublicKey.hex().upper())
-# signature = signedPublicKey[67:]
-# print("signature [" + str(len(signature)) + "] " + signature.hex().upper())

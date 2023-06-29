@@ -28,6 +28,9 @@ include $(BOLOS_SDK)/Makefile.defines
 # Enabling DEBUG flag will enable PRINTF and disable optimizations
 #DEBUG = 1
 
+# Application name
+APPNAME = "NEO"
+
 # Application version
 APPVERSION_M= 1
 APPVERSION_N= 3
@@ -60,8 +63,6 @@ VARIANT_VALUES = neo
 HAVE_APPLICATION_FLAG_BOLOS_SETTINGS = 1
 HAVE_APPLICATION_FLAG_GLOBAL_PIN = 1
 
-APPNAME = "NEO"
-
 # U2F
 DEFINES   += HAVE_IO_U2F U2F_PROXY_MAGIC=\"NEO\"
 SDK_SOURCE_PATH  += lib_stusb lib_stusb_impl lib_u2f 
@@ -79,6 +80,7 @@ ENABLE_NBGL_QRCODE = 1
 # Use only specific files from standard app
 DISABLE_STANDARD_APP_FILES = 1
 APP_SOURCE_FILES += ${BOLOS_SDK}/lib_standard_app/io.c
+APP_SOURCE_FILES += ${BOLOS_SDK}/lib_standard_app/crypto_helpers.c
 INCLUDES_PATH += ${BOLOS_SDK}/lib_standard_app
 
 ifeq ($(TARGET_NAME), TARGET_NANOS)
@@ -86,3 +88,4 @@ DISABLE_STANDARD_BAGL_UX_FLOW = 1
 endif
 
 include $(BOLOS_SDK)/Makefile.standard_app
+

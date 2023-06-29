@@ -11,11 +11,13 @@ from ragger.navigator import NavInsID
 CLA: int = 0x80
 INS_SIGN: int = 0x02
 INS_GET_PUBLIC_KEY: int = 0x04
+INS_GET_SIGNED_PUBLIC_KEY: int = 0x08
 P1_LAST: int = 0x80
 P1_MORE: int = 0x00
 DEFAULT_PATH: str = "m/44'/888'/0'/0/0"
 MAX_APDU_SIZE: int = 0xFF
 SIGDER_LEN_OFFSET: int = 1
+SIGNED_KEY_SIG_OFFSET: int = 65
 PATH_LEN: int = 20
 
 ROOT_SCREENSHOT_PATH = Path(__file__).parent.resolve()
@@ -53,6 +55,26 @@ def get_public_key(backend, bip44_path: str) -> bytes:
         cdata=pack_derivation_path(bip44_path)[1:])  # No length prefix
 
     return backend.exchange_raw(packed).data
+
+
+def get_signed_public_key_and_validate(backend, bip44_path: str) -> bytes:
+    packed = serialize(
+        cla=CLA,
+        ins=INS_GET_SIGNED_PUBLIC_KEY,
+        p1=0x00,
+        p2=0x00,
+        cdata=pack_derivation_path(bip44_path)[1:])  # No length prefix
+
+    key_and_signature = backend.exchange_raw(packed).data
+
+    # Extract key and its signature
+    signed_key = key_and_signature[:SIGNED_KEY_SIG_OFFSET]
+    signature_ = key_and_signature[SIGNED_KEY_SIG_OFFSET + 2:]
+
+    # Validate key signature
+    check_tx_nist256(signed_key, signature_, signed_key)
+
+    return signed_key[:65]
 
 
 def get_packed_path():

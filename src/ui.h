@@ -98,7 +98,7 @@ extern unsigned char hashTainted;
 extern unsigned char publicKeyNeedsRefresh;
 
 /** the hash. */
-extern cx_sha256_t hash;
+extern cx_sha256_t tx_hash;
 
 /** index of the current screen. */
 extern unsigned int curr_scr_ix;
@@ -125,7 +125,7 @@ extern char curr_tx_desc[MAX_TX_TEXT_LINES][MAX_TX_TEXT_WIDTH];
 extern char address58[MAX_TX_TEXT_LINES][MAX_TX_TEXT_WIDTH];
 
 /** process a partial transaction */
-const void *io_seproxyhal_touch_approve(const void *e);
+const void *sign_tx_and_send_response(void);
 
 /** show the idle UI */
 void ui_idle(void);

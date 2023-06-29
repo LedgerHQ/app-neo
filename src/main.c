@@ -19,15 +19,13 @@
 #include "cx.h"
 #include <stdbool.h>
 #include "os_io_seproxyhal.h"
+#include "crypto_helpers.h"
 #include "io.h"
 #include "ui.h"
 #include "neo.h"
 #ifdef HAVE_BAGL
 #include "bagl.h"
 #endif
-#define MAX_EXIT_TIMER 4098
-
-#define EXIT_TIMER_REFRESH_INTERVAL 512
 
 /** start of the buffer, reject any transmission that doesn't start with this, as it's invalid. */
 #define CLA 0x80
@@ -66,8 +64,6 @@ static void neo_main(void) {
     // sure the io_event is called with a
     // switch event, before the apdu is replied to the bootloader. This avoid
     // APDU injection faults.
-
-    PRINTF("ENTER MAIN \n");
     for (;;) {
         volatile unsigned short sw = 0;
 
@@ -105,7 +101,7 @@ static void neo_main(void) {
                         // if this is the first transaction part, reset the hash and all the other
                         // temporary variables.
                         if (hashTainted) {
-                            cx_sha256_init(&hash);
+                            cx_sha256_init(&tx_hash);
                             hashTainted = 0;
                             raw_tx_ix = 0;
                             raw_tx_len = 0;
@@ -147,14 +143,13 @@ static void neo_main(void) {
                         // if this is not the last part of the transaction, do not display the UI,
                         // and approve the partial transaction. this adds the TX to the hash.
                         if (G_io_apdu_buffer[2] == P1_MORE) {
-                            io_seproxyhal_touch_approve(NULL);
+                            sign_tx_and_send_response();
                         }
                     } break;
 
                         // we're asked for the public key.
                     case INS_GET_PUBLIC_KEY: {
-                        cx_ecfp_public_key_t publicKey;
-                        cx_ecfp_private_key_t privateKey;
+                        uint8_t raw_pubkey[65];
 
                         if (rx < APDU_HEADER_LENGTH + BIP44_BYTE_LENGTH) {
                             hashTainted = 1;
@@ -172,26 +167,21 @@ static void neo_main(void) {
                                             (bip44_in[2] << 8) | (bip44_in[3]);
                             bip44_in += 4;
                         }
-                        unsigned char privateKeyData[64];
 
-                        if (os_derive_bip32_no_throw(CX_CURVE_256R1,
-                                                     bip44_path,
-                                                     BIP44_PATH_LEN,
-                                                     privateKeyData,
-                                                     NULL)) {
+                        if (bip32_derive_get_pubkey_256(CX_CURVE_256R1,
+                                                        bip44_path,
+                                                        BIP44_PATH_LEN,
+                                                        raw_pubkey,
+                                                        NULL,
+                                                        CX_SHA512) != CX_OK) {
                             THROW(0x6D00);
                         }
-                        cx_ecdsa_init_private_key(CX_CURVE_256R1, privateKeyData, 32, &privateKey);
-
-                        // generate the public key.
-                        cx_ecdsa_init_public_key(CX_CURVE_256R1, NULL, 0, &publicKey);
-                        cx_ecfp_generate_pair_no_throw(CX_CURVE_256R1, &publicKey, &privateKey, 1);
 
                         // push the public key onto the response buffer.
-                        memmove(G_io_apdu_buffer, publicKey.W, 65);
-                        tx = 65;
+                        memmove(G_io_apdu_buffer, raw_pubkey, sizeof(raw_pubkey));
+                        tx = sizeof(raw_pubkey);
 
-                        display_public_key(publicKey.W);
+                        display_public_key(raw_pubkey);
 #if defined(TARGET_NANOS)
                         refresh_public_key_display();
 #endif
@@ -220,15 +210,14 @@ static void neo_main(void) {
                                             (bip44_in[2] << 8) | (bip44_in[3]);
                             bip44_in += 4;
                         }
-                        unsigned char privateKeyData[64];
-                        if (os_derive_bip32_no_throw(CX_CURVE_256R1,
-                                                     bip44_path,
-                                                     BIP44_PATH_LEN,
-                                                     privateKeyData,
-                                                     NULL)) {
+
+                        if (bip32_derive_init_privkey_256(CX_CURVE_256R1,
+                                                          bip44_path,
+                                                          BIP44_PATH_LEN,
+                                                          &privateKey,
+                                                          NULL) != CX_OK) {
                             THROW(0x6D00);
                         }
-                        cx_ecdsa_init_private_key(CX_CURVE_256R1, privateKeyData, 32, &privateKey);
 
                         // generate the public key.
                         cx_ecdsa_init_public_key(CX_CURVE_256R1, NULL, 0, &publicKey);
@@ -252,6 +241,17 @@ static void neo_main(void) {
 
                         cx_hash_no_throw(&pubKeyHash.header, CX_LAST, publicKey.W, 65, result, 32);
                         size_t sig_len = sizeof(G_io_apdu_buffer) - tx;
+
+                        if (cx_ecdsa_sign_no_throw((void *) &privateKey,
+                                                   CX_RND_RFC6979 | CX_LAST,
+                                                   CX_SHA256,
+                                                   result,
+                                                   sizeof(result),
+                                                   G_io_apdu_buffer + tx,
+                                                   &sig_len,
+                                                   NULL) != CX_OK) {
+                            THROW(0x6D00);
+                        }
 
                         tx += sig_len;
 
@@ -295,13 +295,6 @@ return_to_dashboard:
     return;
 }
 
-/** display function */
-#ifdef HAVE_BAGL
-void io_seproxyhal_display(const bagl_element_t *element) {
-    io_seproxyhal_display_default((bagl_element_t *) element);
-}
-#endif
-
 /** boot up the app and intialize it */
 __attribute__((section(".boot"))) int main(void) {
     // exit critical section
@@ -322,12 +315,9 @@ __attribute__((section(".boot"))) int main(void) {
         TRY {
             io_seproxyhal_init();
 
-#ifdef LISTEN_BLE
-            if (os_seph_features() & SEPROXYHAL_TAG_SESSION_START_EVENT_FEATURE_BLE) {
-                BLE_power(0, NULL);
-                // restart IOs
-                BLE_power(1, NULL);
-            }
+#ifdef HAVE_BLE
+            BLE_power(0, NULL);
+            BLE_power(1, NULL);
 #endif
 
             USB_power(0);

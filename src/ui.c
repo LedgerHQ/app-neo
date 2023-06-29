@@ -4,6 +4,7 @@
 
 #include "ui.h"
 #include "glyphs.h"
+#include "crypto_helpers.h"
 
 /** default font */
 #define DEFAULT_FONT BAGL_FONT_OPEN_SANS_EXTRABOLD_11px | BAGL_FONT_ALIGNMENT_CENTER
@@ -78,7 +79,7 @@ unsigned char hashTainted;
 unsigned char publicKeyNeedsRefresh;
 
 /** the hash. */
-cx_sha256_t hash;
+cx_sha256_t tx_hash;
 
 /** index of the current screen. */
 unsigned int curr_scr_ix;
@@ -105,7 +106,7 @@ char curr_tx_desc[MAX_TX_TEXT_LINES][MAX_TX_TEXT_WIDTH];
 char address58[MAX_TX_TEXT_LINES][MAX_TX_TEXT_WIDTH];
 
 /** UI was touched indicating the user wants to deny te signature request */
-static const void *io_seproxyhal_touch_deny(const void *e);
+static const void *reject_tx_and_send_response(void);
 
 /** sets the tx_desc variables to no information */
 static void clear_tx_desc(void);
@@ -127,14 +128,14 @@ UX_STEP_NOCB(ux_confirm_single_flow_4_step,
              {"Destination Address", tx_desc[2][0], tx_desc[2][1], tx_desc[2][2]});
 UX_STEP_VALID(ux_confirm_single_flow_5_step,
               pb,
-              io_seproxyhal_touch_approve(NULL),
+              sign_tx_and_send_response(),
               {
                   &C_icon_validate_14,
                   "Accept",
               });
 UX_STEP_VALID(ux_confirm_single_flow_6_step,
               pb,
-              io_seproxyhal_touch_deny(NULL),
+              reject_tx_and_send_response(),
               {
                   &C_icon_crossmark,
                   "Reject",
@@ -352,7 +353,7 @@ static unsigned int bagl_ui_top_sign_nanos_button(unsigned int button_mask,
     UNUSED(button_mask_counter);
     switch (button_mask) {
         case BUTTON_EVT_RELEASED | BUTTON_LEFT | BUTTON_RIGHT:
-            io_seproxyhal_touch_approve(NULL);
+            sign_tx_and_send_response();
             break;
 
         case BUTTON_EVT_RELEASED | BUTTON_RIGHT:
@@ -396,7 +397,7 @@ static unsigned int bagl_ui_sign_nanos_button(unsigned int button_mask,
     UNUSED(button_mask_counter);
     switch (button_mask) {
         case BUTTON_EVT_RELEASED | BUTTON_LEFT | BUTTON_RIGHT:
-            io_seproxyhal_touch_approve(NULL);
+            sign_tx_and_send_response();
             break;
 
         case BUTTON_EVT_RELEASED | BUTTON_RIGHT:
@@ -439,7 +440,7 @@ static unsigned int bagl_ui_deny_nanos_button(unsigned int button_mask,
     UNUSED(button_mask_counter);
     switch (button_mask) {
         case BUTTON_EVT_RELEASED | BUTTON_LEFT | BUTTON_RIGHT:
-            io_seproxyhal_touch_deny(NULL);
+            reject_tx_and_send_response();
             break;
 
         case BUTTON_EVT_RELEASED | BUTTON_RIGHT:
@@ -721,8 +722,8 @@ static bool infoNavCallback(uint8_t page, nbgl_pageContent_t *content) {
     if (page == 0) {
         content->type = INFOS_LIST;
         content->infosList.nbInfos = NB_INFO_FIELDS;
-        content->infosList.infoTypes = (const char **) infoTypes;
-        content->infosList.infoContents = (const char **) infoContents;
+        content->infosList.infoTypes = infoTypes;
+        content->infosList.infoContents = infoContents;
     } else {
         return false;
     }
@@ -740,7 +741,7 @@ static void displayTransaction(void) {
 static void reviewChoice(bool confirm) {
     if (confirm) {
         nbgl_useCaseStatus("TRANSACTION\nSIGNED", true, ui_idle);
-        io_seproxyhal_touch_approve(NULL);
+        sign_tx_and_send_response();
     } else {
         rejectUseCaseChoice();
     }
@@ -748,7 +749,7 @@ static void reviewChoice(bool confirm) {
 
 static void rejectConfirm(void) {
     nbgl_useCaseStatus("Transaction rejected", false, ui_idle);
-    io_seproxyhal_touch_deny(NULL);
+    reject_tx_and_send_response();
 }
 
 static void rejectUseCaseChoice(void) {
@@ -767,7 +768,7 @@ static void reviewStart(void) {
     infoLongPress.longPressText = "Hold to sign";
     infoLongPress.icon = &C_icon_64px;
 
-    pairList.pairs = (nbgl_layoutTagValue_t *) fields;
+    pairList.pairs = fields;
     pairList.nbPairs = 3;
 
     fields[0].item = "Type";
@@ -789,14 +790,13 @@ static void reviewStart(void) {
 
 /** processes the transaction approval. the UI is only displayed when all of the TX has been sent
  * over for signing. */
-const void *io_seproxyhal_touch_approve(const void *e) {
-    UNUSED(e);
+const void *sign_tx_and_send_response(void) {
     unsigned int tx = 0;
 
     if (G_io_apdu_buffer[2] == P1_LAST) {
         unsigned int raw_tx_len_except_bip44 = raw_tx_len - BIP44_BYTE_LENGTH;
         // Update and sign the hash
-        cx_hash_no_throw(&hash.header, 0, raw_tx, raw_tx_len_except_bip44, NULL, 0);
+        cx_hash_no_throw(&tx_hash.header, 0, raw_tx, raw_tx_len_except_bip44, NULL, 0);
 
         unsigned char *bip44_in = raw_tx + raw_tx_len_except_bip44;
 
@@ -810,23 +810,20 @@ const void *io_seproxyhal_touch_approve(const void *e) {
             bip44_in += 4;
         }
 
-        unsigned char privateKeyData[64];
-        if (os_derive_bip32_no_throw(CX_CURVE_256R1,
-                                     bip44_path,
-                                     BIP44_PATH_LEN,
-                                     privateKeyData,
-                                     NULL)) {
+        cx_ecfp_private_key_t privateKey;
+        if (bip32_derive_init_privkey_256(CX_CURVE_256R1,
+                                          bip44_path,
+                                          BIP44_PATH_LEN,
+                                          &privateKey,
+                                          NULL) != CX_OK) {
             THROW(0x6D00);
         }
-
-        cx_ecfp_private_key_t privateKey;
-        cx_ecdsa_init_private_key(CX_CURVE_256R1, privateKeyData, 32, &privateKey);
 
         // Hash is finalized, send back the signature
         unsigned char result[32];
 
-        cx_hash_no_throw(&hash.header, CX_LAST, G_io_apdu_buffer, 0, result, 32);
-#if CX_APILEVEL >= 8
+        cx_hash_no_throw(&tx_hash.header, CX_LAST, G_io_apdu_buffer, 0, result, 32);
+
         size_t sig_len = sizeof(G_io_apdu_buffer);
         if (cx_ecdsa_sign_no_throw((void *) &privateKey,
                                    CX_RND_RFC6979 | CX_LAST,
@@ -839,14 +836,7 @@ const void *io_seproxyhal_touch_approve(const void *e) {
             THROW(0x6D00);
         }
         tx = sig_len;
-#else
-        tx = cx_ecdsa_sign((void *) &privateKey,
-                           CX_RND_RFC6979 | CX_LAST,
-                           CX_SHA256,
-                           result,
-                           sizeof(result),
-                           G_io_apdu_buffer);
-#endif
+
         // G_io_apdu_buffer[0] &= 0xF0; // discard the parity information
         hashTainted = 1;
         clear_tx_desc();
@@ -872,8 +862,7 @@ const void *io_seproxyhal_touch_approve(const void *e) {
 }
 
 /** deny signing. */
-static const void *io_seproxyhal_touch_deny(const void *e) {
-    UNUSED(e);
+static const void *reject_tx_and_send_response(void) {
     hashTainted = 1;
     clear_tx_desc();
     raw_tx_ix = 0;
