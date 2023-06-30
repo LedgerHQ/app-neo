@@ -4,6 +4,7 @@
 
 #include "ui.h"
 #include "glyphs.h"
+#include "crypto_helpers.h"
 
 /** default font */
 #define DEFAULT_FONT BAGL_FONT_OPEN_SANS_EXTRABOLD_11px | BAGL_FONT_ALIGNMENT_CENTER
@@ -27,7 +28,7 @@ enum UI_STATE uiState;
 #include "ux.h"
 ux_state_t G_ux;
 bolos_ux_params_t G_ux_params;
-#else   // TARGET_NANOS
+#elif defined(TARGET_NANOS)
 ux_state_t ux;
 /** show the public key screen */
 static void ui_public_key_1(void);
@@ -48,7 +49,28 @@ static void copy_tx_desc(void);
 
 /** UI was touched indicating the user wants to exit the app */
 static const bagl_element_t *io_seproxyhal_touch_exit(const bagl_element_t *e);
-#endif  // TARGET_NANOX
+#elif defined(TARGET_STAX)
+#include "nbgl_page.h"
+#include "nbgl_use_case.h"
+#include "ux.h"
+
+ux_state_t ux;
+ux_state_t G_ux;
+bolos_ux_params_t G_ux_params;
+
+#define NB_INFO_FIELDS 2
+static const char *const infoTypes[] = {"Version", "Neo App"};
+static const char *const infoContents[] = {APPVERSION, "(c) 2022 Ledger"};
+
+static nbgl_layoutTagValue_t fields[3];
+static nbgl_layoutTagValueList_t pairList;
+static nbgl_pageInfoLongPress_t infoLongPress;
+
+static void rejectUseCaseChoice(void);
+static void reviewChoice(bool confirm);
+static void reviewStart(void);
+static void pageCallback(int token, uint8_t index);
+#endif
 
 /** notification to restart the hash */
 unsigned char hashTainted;
@@ -57,7 +79,7 @@ unsigned char hashTainted;
 unsigned char publicKeyNeedsRefresh;
 
 /** the hash. */
-cx_sha256_t hash;
+cx_sha256_t tx_hash;
 
 /** index of the current screen. */
 unsigned int curr_scr_ix;
@@ -80,11 +102,11 @@ char tx_desc[MAX_TX_TEXT_SCREENS][MAX_TX_TEXT_LINES][MAX_TX_TEXT_WIDTH];
 /** currently displayed text description. */
 char curr_tx_desc[MAX_TX_TEXT_LINES][MAX_TX_TEXT_WIDTH];
 
-/** currently displayed public key */
-char current_public_key[MAX_TX_TEXT_LINES][MAX_TX_TEXT_WIDTH];
+/** currently displayed address */
+char address58[MAX_TX_TEXT_LINES][MAX_TX_TEXT_WIDTH];
 
 /** UI was touched indicating the user wants to deny te signature request */
-static const bagl_element_t *io_seproxyhal_touch_deny(const bagl_element_t *e);
+static const void *reject_tx_and_send_response(void);
 
 /** sets the tx_desc variables to no information */
 static void clear_tx_desc(void);
@@ -106,14 +128,14 @@ UX_STEP_NOCB(ux_confirm_single_flow_4_step,
              {"Destination Address", tx_desc[2][0], tx_desc[2][1], tx_desc[2][2]});
 UX_STEP_VALID(ux_confirm_single_flow_5_step,
               pb,
-              io_seproxyhal_touch_approve(NULL),
+              sign_tx_and_send_response(),
               {
                   &C_icon_validate_14,
                   "Accept",
               });
 UX_STEP_VALID(ux_confirm_single_flow_6_step,
               pb,
-              io_seproxyhal_touch_deny(NULL),
+              reject_tx_and_send_response(),
               {
                   &C_icon_crossmark,
                   "Reject",
@@ -128,7 +150,7 @@ UX_FLOW(ux_confirm_single_flow,
 
 UX_STEP_NOCB(ux_display_public_flow_step,
              bnnn,
-             {"Address", current_public_key[0], current_public_key[1], current_public_key[2]});
+             {"Address", address58[0], address58[1], address58[2]});
 UX_STEP_VALID(ux_display_public_go_back_step,
               pb,
               ui_idle(),
@@ -179,6 +201,7 @@ UX_FLOW(ux_idle_flow,
 #endif
 ////////////////////////////////////////////////////////////////////////////////////////////////
 
+////////////////////////////////////  NANO S //////////////////////////////////////////////////
 #if defined(TARGET_NANOS)
 /** UI struct for the idle screen */
 static const bagl_element_t bagl_ui_idle_nanos[] = {
@@ -228,10 +251,10 @@ static const bagl_element_t bagl_ui_public_key_nanos_1[] = {
     {{BAGL_RECTANGLE, 0x00, 0, 0, 128, 32, 0, 0, BAGL_FILL, 0x000000, 0xFFFFFF, 0, 0}, NULL},
     /* first line of description of current public key */
     {{BAGL_LABELINE, 0x02, 10, 10, 108, 11, 0x80 | 10, 0, 0, 0xFFFFFF, 0x000000, TX_DESC_FONT, 0},
-     current_public_key[0]},
+     address58[0]},
     /* second line of description of current public key */
     {{BAGL_LABELINE, 0x02, 10, 21, 108, 11, 0x80 | 10, 0, 0, 0xFFFFFF, 0x000000, TX_DESC_FONT, 0},
-     current_public_key[1]},
+     address58[1]},
     /* right icon is a X */
     {{BAGL_ICON, 0x00, 113, 12, 7, 7, 0, 0, 0, 0xFFFFFF, 0x000000, 0, BAGL_GLYPH_ICON_CROSS}, NULL},
     /* left icon is down arrow  */
@@ -248,10 +271,10 @@ static const bagl_element_t bagl_ui_public_key_nanos_2[] = {
     {{BAGL_RECTANGLE, 0x00, 0, 0, 128, 32, 0, 0, BAGL_FILL, 0x000000, 0xFFFFFF, 0, 0}, NULL},
     /* second line of description of current public key */
     {{BAGL_LABELINE, 0x02, 10, 10, 108, 11, 0x80 | 10, 0, 0, 0xFFFFFF, 0x000000, TX_DESC_FONT, 0},
-     current_public_key[1]},
+     address58[1]},
     /* third line of description of current public key  */
     {{BAGL_LABELINE, 0x02, 10, 21, 108, 11, 0x80 | 10, 0, 0, 0xFFFFFF, 0x000000, TX_DESC_FONT, 0},
-     current_public_key[2]},
+     address58[2]},
     /* right icon is a X */
     {{BAGL_ICON, 0x00, 113, 12, 7, 7, 0, 0, 0, 0xFFFFFF, 0x000000, 0, BAGL_GLYPH_ICON_CROSS}, NULL},
     /* left icon is up arrow  */
@@ -312,7 +335,7 @@ static const bagl_element_t bagl_ui_top_sign_nanos[] = {
     {{BAGL_RECTANGLE, 0x00, 113, 1, 12, 2, 0, 0, BAGL_FILL, 0xFFFFFF, 0x000000, 0, 0}, NULL},
     /* center text */
     {{BAGL_LABELINE, 0x02, 0, 20, 128, 11, 0, 0, 0, 0xFFFFFF, 0x000000, DEFAULT_FONT, 0},
-     "Sign Tx Now"},
+     "Review Tx"},
     /* left icon is up arrow  */
     {{BAGL_ICON, 0x00, 3, 12, 7, 7, 0, 0, 0, 0xFFFFFF, 0x000000, 0, BAGL_GLYPH_ICON_UP}, NULL},
     /* right icon is down arrow */
@@ -330,7 +353,7 @@ static unsigned int bagl_ui_top_sign_nanos_button(unsigned int button_mask,
     UNUSED(button_mask_counter);
     switch (button_mask) {
         case BUTTON_EVT_RELEASED | BUTTON_LEFT | BUTTON_RIGHT:
-            io_seproxyhal_touch_approve(NULL);
+            sign_tx_and_send_response();
             break;
 
         case BUTTON_EVT_RELEASED | BUTTON_RIGHT:
@@ -356,8 +379,7 @@ static const bagl_element_t bagl_ui_sign_nanos[] = {
     /* top right bar */
     {{BAGL_RECTANGLE, 0x00, 113, 1, 12, 2, 0, 0, BAGL_FILL, 0xFFFFFF, 0x000000, 0, 0}, NULL},
     /* center text */
-    {{BAGL_LABELINE, 0x02, 0, 20, 128, 11, 0, 0, 0, 0xFFFFFF, 0x000000, DEFAULT_FONT, 0},
-     "Sign Tx"},
+    {{BAGL_LABELINE, 0x02, 0, 20, 128, 11, 0, 0, 0, 0xFFFFFF, 0x000000, DEFAULT_FONT, 0}, "Accept"},
     /* left icon is up arrow  */
     {{BAGL_ICON, 0x00, 3, 12, 7, 7, 0, 0, 0, 0xFFFFFF, 0x000000, 0, BAGL_GLYPH_ICON_UP}, NULL},
     /* right icon is down arrow */
@@ -375,7 +397,7 @@ static unsigned int bagl_ui_sign_nanos_button(unsigned int button_mask,
     UNUSED(button_mask_counter);
     switch (button_mask) {
         case BUTTON_EVT_RELEASED | BUTTON_LEFT | BUTTON_RIGHT:
-            io_seproxyhal_touch_approve(NULL);
+            sign_tx_and_send_response();
             break;
 
         case BUTTON_EVT_RELEASED | BUTTON_RIGHT:
@@ -401,8 +423,7 @@ static const bagl_element_t bagl_ui_deny_nanos[] = {
     /* top right bar */
     {{BAGL_RECTANGLE, 0x00, 113, 1, 12, 2, 0, 0, BAGL_FILL, 0xFFFFFF, 0x000000, 0, 0}, NULL},
     /* center text */
-    {{BAGL_LABELINE, 0x02, 0, 20, 128, 11, 0, 0, 0, 0xFFFFFF, 0x000000, DEFAULT_FONT, 0},
-     "Deny Tx"},
+    {{BAGL_LABELINE, 0x02, 0, 20, 128, 11, 0, 0, 0, 0xFFFFFF, 0x000000, DEFAULT_FONT, 0}, "Reject"},
     /* left icon is up arrow  */
     {{BAGL_ICON, 0x00, 3, 12, 7, 7, 0, 0, 0, 0xFFFFFF, 0x000000, 0, BAGL_GLYPH_ICON_UP}, NULL},
     {{BAGL_ICON, 0x00, 117, 13, 7, 7, 0, 0, 0, 0xFFFFFF, 0x000000, 0, BAGL_GLYPH_ICON_DOWN}, NULL},
@@ -419,7 +440,7 @@ static unsigned int bagl_ui_deny_nanos_button(unsigned int button_mask,
     UNUSED(button_mask_counter);
     switch (button_mask) {
         case BUTTON_EVT_RELEASED | BUTTON_LEFT | BUTTON_RIGHT:
-            io_seproxyhal_touch_deny(NULL);
+            reject_tx_and_send_response();
             break;
 
         case BUTTON_EVT_RELEASED | BUTTON_RIGHT:
@@ -666,17 +687,116 @@ void ui_public_key_2(void) {
 }
 
 #endif
+////////////////////////////////////////////////////////////////////////////////////////////////
+
+////////////////////////////////////  STAX //////////////////////////////////////////////////
+#if defined(TARGET_STAX)
+
+void onQuitCallback(void) {
+    os_sched_exit(-1);
+}
+
+static void displayAddress(void) {
+    nbgl_pageInfoDescription_t info = {.centeredInfo.icon = &C_wallet_64px,
+                                       .centeredInfo.text1 = "Address",
+                                       .centeredInfo.text2 = address58[0],
+                                       .centeredInfo.style = LARGE_CASE_INFO,
+                                       .centeredInfo.offsetY = -16,
+                                       .footerText = NULL,
+                                       .bottomButtonStyle = QUIT_ICON,
+                                       .tapActionText = NULL,
+                                       .tuneId = TUNE_TAP_CASUAL,
+                                       .bottomButtonsToken = 0};
+
+    nbgl_pageDrawInfo(&pageCallback, NULL, &info);
+}
+
+static void pageCallback(int token, uint8_t index) {
+    UNUSED(index);
+    if (token == 0) {
+        ui_idle();
+    }
+}
+
+static bool infoNavCallback(uint8_t page, nbgl_pageContent_t *content) {
+    if (page == 0) {
+        content->type = INFOS_LIST;
+        content->infosList.nbInfos = NB_INFO_FIELDS;
+        content->infosList.infoTypes = infoTypes;
+        content->infosList.infoContents = infoContents;
+    } else {
+        return false;
+    }
+    return true;
+}
+
+static void displayInfoMenu(void) {
+    nbgl_useCaseSettings("Neo infos", 0, 1, false, ui_idle, infoNavCallback, NULL);
+}
+
+static void displayTransaction(void) {
+    nbgl_useCaseStaticReview(&pairList, &infoLongPress, "Reject transaction", reviewChoice);
+}
+
+static void reviewChoice(bool confirm) {
+    if (confirm) {
+        nbgl_useCaseStatus("TRANSACTION\nSIGNED", true, ui_idle);
+        sign_tx_and_send_response();
+    } else {
+        rejectUseCaseChoice();
+    }
+}
+
+static void rejectConfirm(void) {
+    nbgl_useCaseStatus("Transaction rejected", false, ui_idle);
+    reject_tx_and_send_response();
+}
+
+static void rejectUseCaseChoice(void) {
+    nbgl_useCaseConfirm("Reject transaction?",
+                        NULL,
+                        "Yes, Reject",
+                        "Go back to transaction",
+                        rejectConfirm);
+}
+
+static void reviewStart(void) {
+    memset(&fields, 0, sizeof(fields));
+    memset(&infoLongPress, 0, sizeof(infoLongPress));
+
+    infoLongPress.text = "Sign transaction";
+    infoLongPress.longPressText = "Hold to sign";
+    infoLongPress.icon = &C_icon_64px;
+
+    pairList.pairs = fields;
+    pairList.nbPairs = 3;
+
+    fields[0].item = "Type";
+    fields[0].value = tx_desc[0][1];
+    fields[1].item = "Amount";
+    fields[1].value = tx_desc[1][2];
+    fields[2].item = "Destination Address";
+    fields[2].value = tx_desc[2][0];
+
+    nbgl_useCaseReviewStart(&C_icon_64px,
+                            "Review transaction",
+                            NULL,
+                            "Reject transaction",
+                            displayTransaction,
+                            rejectUseCaseChoice);
+}
+#endif
+////////////////////////////////////////////////////////////////////////////////////////////////
 
 /** processes the transaction approval. the UI is only displayed when all of the TX has been sent
  * over for signing. */
-const bagl_element_t *io_seproxyhal_touch_approve(const bagl_element_t *e) {
-    UNUSED(e);
+const void *sign_tx_and_send_response(void) {
     unsigned int tx = 0;
 
     if (G_io_apdu_buffer[2] == P1_LAST) {
         unsigned int raw_tx_len_except_bip44 = raw_tx_len - BIP44_BYTE_LENGTH;
         // Update and sign the hash
-        cx_hash(&hash.header, 0, raw_tx, raw_tx_len_except_bip44, NULL, 0);
+        cx_hash_no_throw(&tx_hash.header, 0, raw_tx, raw_tx_len_except_bip44, NULL, 0);
 
         unsigned char *bip44_in = raw_tx + raw_tx_len_except_bip44;
 
@@ -690,37 +810,33 @@ const bagl_element_t *io_seproxyhal_touch_approve(const bagl_element_t *e) {
             bip44_in += 4;
         }
 
-        unsigned char privateKeyData[32];
-        os_perso_derive_node_bip32(CX_CURVE_256R1,
-                                   bip44_path,
-                                   BIP44_PATH_LEN,
-                                   privateKeyData,
-                                   NULL);
-
         cx_ecfp_private_key_t privateKey;
-        cx_ecdsa_init_private_key(CX_CURVE_256R1, privateKeyData, 32, &privateKey);
+        if (bip32_derive_init_privkey_256(CX_CURVE_256R1,
+                                          bip44_path,
+                                          BIP44_PATH_LEN,
+                                          &privateKey,
+                                          NULL) != CX_OK) {
+            THROW(0x6D00);
+        }
 
         // Hash is finalized, send back the signature
         unsigned char result[32];
 
-        cx_hash(&hash.header, CX_LAST, G_io_apdu_buffer, 0, result, 32);
-#if CX_APILEVEL >= 8
-        tx = cx_ecdsa_sign((void *) &privateKey,
-                           CX_RND_RFC6979 | CX_LAST,
-                           CX_SHA256,
-                           result,
-                           sizeof(result),
-                           G_io_apdu_buffer,
-                           sizeof(G_io_apdu_buffer),
-                           NULL);
-#else
-        tx = cx_ecdsa_sign((void *) &privateKey,
-                           CX_RND_RFC6979 | CX_LAST,
-                           CX_SHA256,
-                           result,
-                           sizeof(result),
-                           G_io_apdu_buffer);
-#endif
+        cx_hash_no_throw(&tx_hash.header, CX_LAST, G_io_apdu_buffer, 0, result, 32);
+
+        size_t sig_len = sizeof(G_io_apdu_buffer);
+        if (cx_ecdsa_sign_no_throw((void *) &privateKey,
+                                   CX_RND_RFC6979 | CX_LAST,
+                                   CX_SHA256,
+                                   result,
+                                   sizeof(result),
+                                   G_io_apdu_buffer,
+                                   &sig_len,
+                                   NULL) != CX_OK) {
+            THROW(0x6D00);
+        }
+        tx = sig_len;
+
         // G_io_apdu_buffer[0] &= 0xF0; // discard the parity information
         hashTainted = 1;
         clear_tx_desc();
@@ -739,13 +855,14 @@ const bagl_element_t *io_seproxyhal_touch_approve(const bagl_element_t *e) {
     // Send back the response, do not restart the event loop
     io_exchange(CHANNEL_APDU | IO_RETURN_AFTER_TX, tx);
     // Display back the original UX
+#ifdef HAVE_BAGL
     ui_idle();
+#endif
     return 0;  // do not redraw the widget
 }
 
 /** deny signing. */
-static const bagl_element_t *io_seproxyhal_touch_deny(const bagl_element_t *e) {
-    UNUSED(e);
+static const void *reject_tx_and_send_response(void) {
     hashTainted = 1;
     clear_tx_desc();
     raw_tx_ix = 0;
@@ -755,7 +872,9 @@ static const bagl_element_t *io_seproxyhal_touch_deny(const bagl_element_t *e) {
     // Send back the response, do not restart the event loop
     io_exchange(CHANNEL_APDU | IO_RETURN_AFTER_TX, 2);
     // Display back the original UX
+#ifdef HAVE_BAGL
     ui_idle();
+#endif
     return 0;  // do not redraw the widget
 }
 
@@ -771,6 +890,15 @@ void ui_idle(void) {
         ux_stack_push();
     }
     ux_flow_init(0, ux_idle_flow, NULL);
+#elif defined(TARGET_STAX)
+    nbgl_useCaseHomeExt("Neo",
+                        &C_icon_64px,
+                        NULL,
+                        false,
+                        "Display account",
+                        displayAddress,
+                        displayInfoMenu,
+                        onQuitCallback);
 #endif  // #if TARGET_ID
 }
 
@@ -786,6 +914,8 @@ void ui_top_sign(void) {
         ux_stack_push();
     }
     ux_flow_init(0, ux_confirm_single_flow, NULL);
+#elif defined(TARGET_STAX)
+    reviewStart();
 #endif  // #if TARGET_ID
 }
 

@@ -19,48 +19,13 @@
 #include "cx.h"
 #include <stdbool.h>
 #include "os_io_seproxyhal.h"
+#include "crypto_helpers.h"
+#include "io.h"
 #include "ui.h"
 #include "neo.h"
+#ifdef HAVE_BAGL
 #include "bagl.h"
-
-#define MAX_EXIT_TIMER 4098
-
-#define EXIT_TIMER_REFRESH_INTERVAL 512
-
-static void Timer_UpdateDescription() {
-    snprintf(timer_desc, MAX_TIMER_TEXT_WIDTH, "%d", exit_timer / EXIT_TIMER_REFRESH_INTERVAL);
-}
-
-static void Timer_UpdateDisplay() {
-    if ((exit_timer % EXIT_TIMER_REFRESH_INTERVAL) == (EXIT_TIMER_REFRESH_INTERVAL / 2)) {
-        UX_REDISPLAY();
-    }
-}
-
-static void Timer_Tick() {
-    if (exit_timer > 0) {
-        exit_timer--;
-        Timer_UpdateDescription();
-    }
-}
-
-static void Timer_Set() {
-    exit_timer = MAX_EXIT_TIMER;
-    Timer_UpdateDescription();
-}
-
-static void Timer_Restart() {
-    if (exit_timer != MAX_EXIT_TIMER) {
-        Timer_Set();
-    }
-}
-
-static bool Timer_Expired() {
-    return exit_timer <= 0;
-}
-
-/** IO buffer to communicate with the outside world. */
-unsigned char G_io_seproxyhal_spi_buffer[IO_SEPROXYHAL_BUFFER_SIZE_B];
+#endif
 
 /** start of the buffer, reject any transmission that doesn't start with this, as it's invalid. */
 #define CLA 0x80
@@ -75,37 +40,9 @@ unsigned char G_io_seproxyhal_spi_buffer[IO_SEPROXYHAL_BUFFER_SIZE_B];
 /** instruction to send back the public key, and a signature of the private key signing the public
  * key. */
 #define INS_GET_SIGNED_PUBLIC_KEY 0x08
-
 /** #### instructions end #### */
 
-/** some kind of event loop */
-unsigned short io_exchange_al(unsigned char channel, unsigned short tx_len) {
-    switch (channel & ~(IO_FLAGS)) {
-        case CHANNEL_KEYBOARD:
-            break;
-
-            // multiplexed io exchange over a SPI channel and TLV encapsulated protocol
-        case CHANNEL_SPI:
-            if (tx_len) {
-                io_seproxyhal_spi_send(G_io_apdu_buffer, tx_len);
-
-                if (channel & IO_RESET_AFTER_REPLIED) {
-                    reset();
-                }
-                // nothing received from the master so far
-                //(it's a tx transaction)
-                return 0;
-            } else {
-                return io_seproxyhal_spi_recv(G_io_apdu_buffer, sizeof(G_io_apdu_buffer), 0);
-            }
-
-        default:
-            hashTainted = 1;
-            THROW(INVALID_PARAMETER);
-    }
-    return 0;
-}
-
+#if defined(TARGET_NANOS)
 /** refreshes the display if the public key was changed ans we are on the page displaying the public
  * key */
 static void refresh_public_key_display(void) {
@@ -113,6 +50,7 @@ static void refresh_public_key_display(void) {
         publicKeyNeedsRefresh = 1;
     }
 }
+#endif
 
 /** main loop. */
 static void neo_main(void) {
@@ -154,7 +92,6 @@ static void neo_main(void) {
                 switch (G_io_apdu_buffer[1]) {
                     // we're getting a transaction to sign, in parts.
                     case INS_SIGN: {
-                        Timer_Restart();
                         // check the third byte (0x02) for the instruction subtype.
                         if ((G_io_apdu_buffer[2] != P1_MORE) && (G_io_apdu_buffer[2] != P1_LAST)) {
                             hashTainted = 1;
@@ -164,7 +101,7 @@ static void neo_main(void) {
                         // if this is the first transaction part, reset the hash and all the other
                         // temporary variables.
                         if (hashTainted) {
-                            cx_sha256_init(&hash);
+                            cx_sha256_init(&tx_hash);
                             hashTainted = 0;
                             raw_tx_ix = 0;
                             raw_tx_len = 0;
@@ -206,16 +143,13 @@ static void neo_main(void) {
                         // if this is not the last part of the transaction, do not display the UI,
                         // and approve the partial transaction. this adds the TX to the hash.
                         if (G_io_apdu_buffer[2] == P1_MORE) {
-                            io_seproxyhal_touch_approve(NULL);
+                            sign_tx_and_send_response();
                         }
                     } break;
 
                         // we're asked for the public key.
                     case INS_GET_PUBLIC_KEY: {
-                        Timer_Restart();
-
-                        cx_ecfp_public_key_t publicKey;
-                        cx_ecfp_private_key_t privateKey;
+                        uint8_t raw_pubkey[65];
 
                         if (rx < APDU_HEADER_LENGTH + BIP44_BYTE_LENGTH) {
                             hashTainted = 1;
@@ -233,33 +167,30 @@ static void neo_main(void) {
                                             (bip44_in[2] << 8) | (bip44_in[3]);
                             bip44_in += 4;
                         }
-                        unsigned char privateKeyData[32];
-                        os_perso_derive_node_bip32(CX_CURVE_256R1,
-                                                   bip44_path,
-                                                   BIP44_PATH_LEN,
-                                                   privateKeyData,
-                                                   NULL);
-                        cx_ecdsa_init_private_key(CX_CURVE_256R1, privateKeyData, 32, &privateKey);
 
-                        // generate the public key.
-                        cx_ecdsa_init_public_key(CX_CURVE_256R1, NULL, 0, &publicKey);
-                        cx_ecfp_generate_pair(CX_CURVE_256R1, &publicKey, &privateKey, 1);
+                        if (bip32_derive_get_pubkey_256(CX_CURVE_256R1,
+                                                        bip44_path,
+                                                        BIP44_PATH_LEN,
+                                                        raw_pubkey,
+                                                        NULL,
+                                                        CX_SHA512) != CX_OK) {
+                            THROW(0x6D00);
+                        }
 
                         // push the public key onto the response buffer.
-                        memmove(G_io_apdu_buffer, publicKey.W, 65);
-                        tx = 65;
+                        memmove(G_io_apdu_buffer, raw_pubkey, sizeof(raw_pubkey));
+                        tx = sizeof(raw_pubkey);
 
-                        display_public_key(publicKey.W);
+                        display_public_key(raw_pubkey);
+#if defined(TARGET_NANOS)
                         refresh_public_key_display();
-
+#endif
                         // return 0x9000 OK.
                         THROW(0x9000);
                     } break;
 
                         // we're asking for the signed public key.
                     case INS_GET_SIGNED_PUBLIC_KEY: {
-                        Timer_Restart();
-
                         cx_ecfp_public_key_t publicKey;
                         cx_ecfp_private_key_t privateKey;
 
@@ -279,25 +210,27 @@ static void neo_main(void) {
                                             (bip44_in[2] << 8) | (bip44_in[3]);
                             bip44_in += 4;
                         }
-                        unsigned char privateKeyData[32];
-                        os_perso_derive_node_bip32(CX_CURVE_256R1,
-                                                   bip44_path,
-                                                   BIP44_PATH_LEN,
-                                                   privateKeyData,
-                                                   NULL);
-                        cx_ecdsa_init_private_key(CX_CURVE_256R1, privateKeyData, 32, &privateKey);
+
+                        if (bip32_derive_init_privkey_256(CX_CURVE_256R1,
+                                                          bip44_path,
+                                                          BIP44_PATH_LEN,
+                                                          &privateKey,
+                                                          NULL) != CX_OK) {
+                            THROW(0x6D00);
+                        }
 
                         // generate the public key.
                         cx_ecdsa_init_public_key(CX_CURVE_256R1, NULL, 0, &publicKey);
-                        cx_ecfp_generate_pair(CX_CURVE_256R1, &publicKey, &privateKey, 1);
+                        cx_ecfp_generate_pair_no_throw(CX_CURVE_256R1, &publicKey, &privateKey, 1);
 
                         // push the public key onto the response buffer.
                         memmove(G_io_apdu_buffer, publicKey.W, 65);
                         tx = 65;
 
                         display_public_key(publicKey.W);
+#if defined(TARGET_NANOS)
                         refresh_public_key_display();
-
+#endif
                         G_io_apdu_buffer[tx++] = 0xFF;
                         G_io_apdu_buffer[tx++] = 0xFF;
 
@@ -306,15 +239,21 @@ static void neo_main(void) {
                         cx_sha256_t pubKeyHash;
                         cx_sha256_init(&pubKeyHash);
 
-                        cx_hash(&pubKeyHash.header, CX_LAST, publicKey.W, 65, result, 32);
-                        tx += cx_ecdsa_sign((void *) &privateKey,
-                                            CX_RND_RFC6979 | CX_LAST,
-                                            CX_SHA256,
-                                            result,
-                                            sizeof(result),
-                                            G_io_apdu_buffer + tx,
-                                            sizeof(G_io_apdu_buffer) - tx,
-                                            NULL);
+                        cx_hash_no_throw(&pubKeyHash.header, CX_LAST, publicKey.W, 65, result, 32);
+                        size_t sig_len = sizeof(G_io_apdu_buffer) - tx;
+
+                        if (cx_ecdsa_sign_no_throw((void *) &privateKey,
+                                                   CX_RND_RFC6979 | CX_LAST,
+                                                   CX_SHA256,
+                                                   result,
+                                                   sizeof(result),
+                                                   G_io_apdu_buffer + tx,
+                                                   &sig_len,
+                                                   NULL) != CX_OK) {
+                            THROW(0x6D00);
+                        }
+
+                        tx += sig_len;
 
                         // return 0x9000 OK.
                         THROW(0x9000);
@@ -356,79 +295,6 @@ return_to_dashboard:
     return;
 }
 
-/** display function */
-void io_seproxyhal_display(const bagl_element_t *element) {
-    io_seproxyhal_display_default((bagl_element_t *) element);
-}
-
-/* io event loop */
-unsigned char io_event(unsigned char channel) {
-    UNUSED(channel);
-    // nothing done with the event, throw an error on the transport layer if
-    // needed
-
-    // can't have more than one tag in the reply, not supported yet.
-    switch (G_io_seproxyhal_spi_buffer[0]) {
-        case SEPROXYHAL_TAG_FINGER_EVENT:
-            Timer_Restart();
-            UX_FINGER_EVENT(G_io_seproxyhal_spi_buffer);
-            break;
-
-        case SEPROXYHAL_TAG_BUTTON_PUSH_EVENT:  // for Nano S
-            Timer_Restart();
-            UX_BUTTON_PUSH_EVENT(G_io_seproxyhal_spi_buffer);
-            break;
-
-        case SEPROXYHAL_TAG_DISPLAY_PROCESSED_EVENT:
-            // Timer_Restart();
-            if (UX_DISPLAYED()) {
-                // perform actions after all screen elements have been displayed
-            } else {
-                UX_DISPLAYED_EVENT();
-            }
-            break;
-
-        case SEPROXYHAL_TAG_TICKER_EVENT:
-#if defined(TARGET_NANOX) || defined(TARGET_NANOS2)
-            UX_TICKER_EVENT(G_io_seproxyhal_spi_buffer, {
-                // don't redisplay if UX not allowed (pin locked in the common bolos
-                // ux ?)
-                if (UX_ALLOWED) {
-                    // redisplay screen
-                    UX_REDISPLAY();
-                }
-            });
-#else
-            //		UX_REDISPLAY();
-            Timer_Tick();
-            if (publicKeyNeedsRefresh == 1) {
-                UX_REDISPLAY();
-                publicKeyNeedsRefresh = 0;
-            } else {
-                if (Timer_Expired()) {
-                    os_sched_exit(0);
-                } else {
-                    Timer_UpdateDisplay();
-                }
-            }
-#endif
-            break;
-
-            // unknown events are acknowledged
-        default:
-            UX_DEFAULT_EVENT();
-            break;
-    }
-
-    // close the event if not done previously (by a display or whatever)
-    if (!io_seproxyhal_spi_is_status_sent()) {
-        io_seproxyhal_general_status();
-    }
-
-    // command has been processed, DO NOT reset the current APDU transport
-    return 1;
-}
-
 /** boot up the app and intialize it */
 __attribute__((section(".boot"))) int main(void) {
     // exit critical section
@@ -449,12 +315,9 @@ __attribute__((section(".boot"))) int main(void) {
         TRY {
             io_seproxyhal_init();
 
-#ifdef LISTEN_BLE
-            if (os_seph_features() & SEPROXYHAL_TAG_SESSION_START_EVENT_FEATURE_BLE) {
-                BLE_power(0, NULL);
-                // restart IOs
-                BLE_power(1, NULL);
-            }
+#ifdef HAVE_BLE
+            BLE_power(0, NULL);
+            BLE_power(1, NULL);
 #endif
 
             USB_power(0);
@@ -465,9 +328,6 @@ __attribute__((section(".boot"))) int main(void) {
 
             // show idle screen.
             ui_idle();
-
-            // set timer
-            Timer_Set();
 
             // run main event loop.
             neo_main();

@@ -17,3 +17,14 @@ jobs:
       source: './src'
       extensions: 'h,c'
       version: 11
+
+  tests_lint_check:
+    name: Check tests linting
+    runs-on: ubuntu-latest
+    steps:
+    - name: Clone
+      uses: actions/checkout@v3
+    - run: pip install yapf
+    - name: Yapf source formatting
+      run: |
+        yapf test/ --recursive -d

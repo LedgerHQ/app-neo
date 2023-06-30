@@ -205,9 +205,13 @@ static const char TX_PUBLISH_NM[] = "Publish Tx";
 /** Label when displaying a Invoke transaction */
 static const char TX_INVOKE_NM[] = "Invoke Tx";
 
+#ifdef HAVE_BAGL
 /** Label when a public key has not been set yet */
 static const char NO_PUBLIC_KEY_0[] = "No Public Key";
 static const char NO_PUBLIC_KEY_1[] = "Requested Yet";
+#else
+static const char NO_PUBLIC_KEY[] = "No Public Key\n Requested Yet";
+#endif
 
 /** array of capital letter hex values */
 static const char HEX_CAP[] = {
@@ -388,14 +392,19 @@ static void to_address(char *dest, unsigned int dest_len, const unsigned char *s
 
     // do a sha256 hash of the address twice.
     cx_sha256_init(&address_hash);
-    cx_hash(&address_hash.header, CX_LAST, address, SCRIPT_HASH_LEN + 1, address_hash_result_0, 32);
+    cx_hash_no_throw(&address_hash.header,
+                     CX_LAST,
+                     address,
+                     SCRIPT_HASH_LEN + 1,
+                     address_hash_result_0,
+                     32);
     cx_sha256_init(&address_hash);
-    cx_hash(&address_hash.header,
-            CX_LAST,
-            address_hash_result_0,
-            SHA256_HASH_LEN,
-            address_hash_result_1,
-            32);
+    cx_hash_no_throw(&address_hash.header,
+                     CX_LAST,
+                     address_hash_result_0,
+                     SHA256_HASH_LEN,
+                     address_hash_result_1,
+                     32);
 
     // add the first bytes of the hash as a checksum at the end of the address.
     memmove(address + 1 + SCRIPT_HASH_LEN, address_hash_result_1, SCRIPT_HASH_CHECKSUM_LEN);
@@ -720,26 +729,29 @@ unsigned char display_tx_desc() {
     unsigned char asset_id[ASSET_ID_LEN];
     unsigned char value[VALUE_LEN];
     unsigned char script_hash[SCRIPT_HASH_LEN];
+#if SHOW_SCRIPT_HASH
     unsigned int script_hash_len0 = 6;
     unsigned int script_hash_len1 = 7;
     unsigned int script_hash_len2 = 7;
     unsigned char *script_hash0 = script_hash;
     unsigned char *script_hash1 = script_hash + script_hash_len0;
     unsigned char *script_hash2 = script_hash + script_hash_len0 + script_hash_len1;
+#endif
 
     char address_base58[ADDRESS_BASE58_LEN];
+#ifdef HAVE_BAGL
     unsigned int address_base58_len_0 = 11;
     unsigned int address_base58_len_1 = 11;
     unsigned int address_base58_len_2 = 12;
     char *address_base58_0 = address_base58;
     char *address_base58_1 = address_base58 + address_base58_len_0;
     char *address_base58_2 = address_base58 + address_base58_len_0 + address_base58_len_1;
-
+#endif
     for (unsigned int ix = 0; ix < num_tx_outs; ix++) {
         next_raw_tx_arr(asset_id, ASSET_ID_LEN);
         next_raw_tx_arr(value, VALUE_LEN);
         next_raw_tx_arr(script_hash, SCRIPT_HASH_LEN);
-
+        memset(address_base58, 0, ADDRESS_BASE58_LEN);
         to_address(address_base58, ADDRESS_BASE58_LEN, script_hash);
 
         // asset_id and value screen
@@ -757,6 +769,14 @@ unsigned char display_tx_desc() {
             // value, base 10.
             to_base10_100m(tx_desc[scr_ix][1], value, MAX_TX_TEXT_WIDTH);
 
+#ifdef HAVE_NBGL
+            snprintf(tx_desc[scr_ix][2],
+                     sizeof(tx_desc[scr_ix][2]),
+                     "%s %s",
+                     tx_desc[scr_ix][0],
+                     tx_desc[scr_ix][1]);
+#endif
+#ifdef HAVE_BAGL
             // value, base 16.
             if (SHOW_VALUE_HEX) {
                 hex_buffer_len = min(MAX_HEX_BUFFER_LEN, VALUE_LEN) * 2;
@@ -765,35 +785,39 @@ unsigned char display_tx_desc() {
             } else {
                 memmove(tx_desc[scr_ix][2], TXT_BLANK, sizeof(TXT_BLANK));
             }
+#endif
             scr_ix++;
         }
 
         // script hash screen
-        if (SHOW_SCRIPT_HASH) {
-            if (scr_ix < MAX_TX_TEXT_SCREENS) {
-                hex_buffer_len = min(MAX_HEX_BUFFER_LEN, script_hash_len0) * 2;
-                to_hex(hex_buffer, script_hash0, hex_buffer_len);
-                memmove(tx_desc[scr_ix][0], hex_buffer, hex_buffer_len);
+#if SHOW_SCRIPT_HASH
+        if (scr_ix < MAX_TX_TEXT_SCREENS) {
+            hex_buffer_len = min(MAX_HEX_BUFFER_LEN, script_hash_len0) * 2;
+            to_hex(hex_buffer, script_hash0, hex_buffer_len);
+            memmove(tx_desc[scr_ix][0], hex_buffer, hex_buffer_len);
 
-                hex_buffer_len = min(MAX_HEX_BUFFER_LEN, script_hash_len1) * 2;
-                to_hex(hex_buffer, script_hash1, hex_buffer_len);
-                memmove(tx_desc[scr_ix][1], hex_buffer, hex_buffer_len);
+            hex_buffer_len = min(MAX_HEX_BUFFER_LEN, script_hash_len1) * 2;
+            to_hex(hex_buffer, script_hash1, hex_buffer_len);
+            memmove(tx_desc[scr_ix][1], hex_buffer, hex_buffer_len);
 
-                hex_buffer_len = min(MAX_HEX_BUFFER_LEN, script_hash_len2) * 2;
-                to_hex(hex_buffer, script_hash2, hex_buffer_len);
-                memmove(tx_desc[scr_ix][2], hex_buffer, hex_buffer_len);
+            hex_buffer_len = min(MAX_HEX_BUFFER_LEN, script_hash_len2) * 2;
+            to_hex(hex_buffer, script_hash2, hex_buffer_len);
+            memmove(tx_desc[scr_ix][2], hex_buffer, hex_buffer_len);
 
-                scr_ix++;
-            }
+            scr_ix++;
         }
+#endif
 
         // address screen
         if (scr_ix < MAX_TX_TEXT_SCREENS) {
+#ifdef HAVE_BAGL
             memset(tx_desc[scr_ix], '\0', CURR_TX_DESC_LEN);
             memmove(tx_desc[scr_ix][0], address_base58_0, address_base58_len_0);
             memmove(tx_desc[scr_ix][1], address_base58_1, address_base58_len_1);
             memmove(tx_desc[scr_ix][2], address_base58_2, address_base58_len_2);
-
+#else
+            strncpy(tx_desc[scr_ix][0], address_base58, sizeof(tx_desc[scr_ix][0]));
+#endif
             scr_ix++;
         }
     }
@@ -806,12 +830,17 @@ unsigned char display_tx_desc() {
 }
 
 void display_no_public_key() {
-    memmove(current_public_key[0], TXT_BLANK, sizeof(TXT_BLANK));
-    memmove(current_public_key[1], TXT_BLANK, sizeof(TXT_BLANK));
-    memmove(current_public_key[2], TXT_BLANK, sizeof(TXT_BLANK));
-    memmove(current_public_key[0], NO_PUBLIC_KEY_0, sizeof(NO_PUBLIC_KEY_0));
-    memmove(current_public_key[1], NO_PUBLIC_KEY_1, sizeof(NO_PUBLIC_KEY_1));
+#ifdef HAVE_BAGL
+    memmove(address58[0], TXT_BLANK, sizeof(TXT_BLANK));
+    memmove(address58[1], TXT_BLANK, sizeof(TXT_BLANK));
+    memmove(address58[2], TXT_BLANK, sizeof(TXT_BLANK));
+    memmove(address58[0], NO_PUBLIC_KEY_0, sizeof(NO_PUBLIC_KEY_0));
+    memmove(address58[1], NO_PUBLIC_KEY_1, sizeof(NO_PUBLIC_KEY_1));
     publicKeyNeedsRefresh = 0;
+#else  // HAVE_NBGL
+    memset(address58[0], 0, sizeof(address58[0]));
+    memmove(address58[0], NO_PUBLIC_KEY, sizeof(NO_PUBLIC_KEY));
+#endif
 }
 
 void public_key_hash160(unsigned char *in, unsigned short inlen, unsigned char *out) {
@@ -822,16 +851,19 @@ void public_key_hash160(unsigned char *in, unsigned short inlen, unsigned char *
     unsigned char buffer[32];
 
     cx_sha256_init(&u.shasha);
-    cx_hash(&u.shasha.header, CX_LAST, in, inlen, buffer, 32);
+    cx_hash_no_throw(&u.shasha.header, CX_LAST, in, inlen, buffer, 32);
     cx_ripemd160_init(&u.riprip);
-    cx_hash(&u.riprip.header, CX_LAST, buffer, 32, out, 20);
+    cx_hash_no_throw(&u.riprip.header, CX_LAST, buffer, 32, out, 20);
 }
 
 void display_public_key(const unsigned char *public_key) {
-    memmove(current_public_key[0], TXT_BLANK, sizeof(TXT_BLANK));
-    memmove(current_public_key[1], TXT_BLANK, sizeof(TXT_BLANK));
-    memmove(current_public_key[2], TXT_BLANK, sizeof(TXT_BLANK));
-
+#ifdef HAVE_BAGL
+    memmove(address58[0], TXT_BLANK, sizeof(TXT_BLANK));
+    memmove(address58[1], TXT_BLANK, sizeof(TXT_BLANK));
+    memmove(address58[2], TXT_BLANK, sizeof(TXT_BLANK));
+#else
+    memset(address58[0], 0, sizeof(address58[0]));
+#endif
     // from https://github.com/CityOfZion/neon-js core.js
     unsigned char public_key_encoded[33];
     public_key_encoded[0] = ((public_key[64] & 1) ? 0x03 : 0x02);
@@ -854,15 +886,18 @@ void display_public_key(const unsigned char *public_key) {
     }
 
     char address_base58[ADDRESS_BASE58_LEN];
+    to_address(address_base58, ADDRESS_BASE58_LEN, script_hash);
+#ifdef HAVE_BAGL
     unsigned int address_base58_len_0 = 11;
     unsigned int address_base58_len_1 = 11;
     unsigned int address_base58_len_2 = 12;
     char *address_base58_0 = address_base58;
     char *address_base58_1 = address_base58 + address_base58_len_0;
     char *address_base58_2 = address_base58 + address_base58_len_0 + address_base58_len_1;
-    to_address(address_base58, ADDRESS_BASE58_LEN, script_hash);
-
-    memmove(current_public_key[0], address_base58_0, address_base58_len_0);
-    memmove(current_public_key[1], address_base58_1, address_base58_len_1);
-    memmove(current_public_key[2], address_base58_2, address_base58_len_2);
+    memmove(address58[0], address_base58_0, address_base58_len_0);
+    memmove(address58[1], address_base58_1, address_base58_len_1);
+    memmove(address58[2], address_base58_2, address_base58_len_2);
+#else  // HAVE_NBGL
+    strncpy(address58[0], address_base58, sizeof(address58[0]));
+#endif
 }

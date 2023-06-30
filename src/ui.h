@@ -9,8 +9,9 @@
 #include "ux.h"
 #include <stdbool.h>
 #include "os_io_seproxyhal.h"
+#ifdef HAVE_BAGL
 #include "bagl.h"
-
+#endif
 /** the timer */
 extern int exit_timer;
 
@@ -47,12 +48,18 @@ extern char timer_desc[MAX_TIMER_TEXT_WIDTH];
  */
 #define MAX_TX_RAW_LENGTH 1024
 
-/** max width of a single line of text. */
-#define MAX_TX_TEXT_WIDTH 18
-
 /** max lines of text to display. */
 #define MAX_TX_TEXT_LINES 3
 
+/** max width of a single line of text. */
+#ifdef HAVE_BAGL
+#define MAX_TX_TEXT_WIDTH 18
+#else
+// In stax we use only one string, not an array of three short ones,
+// use this trick so that we can copy the whole value in one array
+// slot without having to put conditional compilation everywhere...
+#define MAX_TX_TEXT_WIDTH 18 * MAX_TX_TEXT_LINES
+#endif
 /** max number of screens to display. */
 #define MAX_TX_TEXT_SCREENS 9
 
@@ -91,7 +98,7 @@ extern unsigned char hashTainted;
 extern unsigned char publicKeyNeedsRefresh;
 
 /** the hash. */
-extern cx_sha256_t hash;
+extern cx_sha256_t tx_hash;
 
 /** index of the current screen. */
 extern unsigned int curr_scr_ix;
@@ -114,11 +121,11 @@ extern char tx_desc[MAX_TX_TEXT_SCREENS][MAX_TX_TEXT_LINES][MAX_TX_TEXT_WIDTH];
 /** currently displayed text description. */
 extern char curr_tx_desc[MAX_TX_TEXT_LINES][MAX_TX_TEXT_WIDTH];
 
-/** currently displayed public key */
-extern char current_public_key[MAX_TX_TEXT_LINES][MAX_TX_TEXT_WIDTH];
+/** currently displayed address */
+extern char address58[MAX_TX_TEXT_LINES][MAX_TX_TEXT_WIDTH];
 
 /** process a partial transaction */
-const bagl_element_t *io_seproxyhal_touch_approve(const bagl_element_t *e);
+const void *sign_tx_and_send_response(void);
 
 /** show the idle UI */
 void ui_idle(void);
