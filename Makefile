@@ -34,7 +34,7 @@ APPNAME = "NEO"
 # Application version
 APPVERSION_M= 1
 APPVERSION_N= 3
-APPVERSION_P= 7
+APPVERSION_P= 8
 APPVERSION = "$(APPVERSION_M).$(APPVERSION_N).$(APPVERSION_P)"
 
 # Application source files
@@ -47,10 +47,10 @@ ICON_NANOX = nanox_app_neo.gif
 ICON_NANOSP = nanox_app_neo.gif
 
 # Application allowed derivation curves.
-CURVE_APP_LOAD_PARAMS = secp256k1
+CURVE_APP_LOAD_PARAMS = secp256r1
 
 # Application allowed derivation paths.
-PATH_APP_LOAD_PARAMS = "44'/888' 44'/1024'"
+PATH_APP_LOAD_PARAMS = "44'/888'" "44'/1024'"
 
 # Setting to allow building variant applications
 VARIANT_PARAM = COIN
