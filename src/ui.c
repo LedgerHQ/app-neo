@@ -59,8 +59,8 @@ ux_state_t G_ux;
 bolos_ux_params_t G_ux_params;
 
 #define NB_INFO_FIELDS 2
-static const char *const infoTypes[] = {"Version", "Neo App"};
-static const char *const infoContents[] = {APPVERSION, "(c) 2022 Ledger"};
+static const char *const infoTypes[] = {"Version", "Developer"};
+static const char *const infoContents[] = {APPVERSION, "Ledger"};
 
 static nbgl_layoutTagValue_t fields[3];
 static nbgl_layoutTagValueList_t pairList;
@@ -731,7 +731,7 @@ static bool infoNavCallback(uint8_t page, nbgl_pageContent_t *content) {
 }
 
 static void displayInfoMenu(void) {
-    nbgl_useCaseSettings("Neo infos", 0, 1, false, ui_idle, infoNavCallback, NULL);
+    nbgl_useCaseSettings(APPNAME, 0, 1, false, ui_idle, infoNavCallback, NULL);
 }
 
 static void displayTransaction(void) {
@@ -891,7 +891,7 @@ void ui_idle(void) {
     }
     ux_flow_init(0, ux_idle_flow, NULL);
 #elif defined(TARGET_STAX)
-    nbgl_useCaseHomeExt("Neo",
+    nbgl_useCaseHomeExt(APPNAME,
                         &C_icon_64px,
                         NULL,
                         false,
