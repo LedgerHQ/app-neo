@@ -410,7 +410,14 @@ static void to_address(char *dest, unsigned int dest_len, const unsigned char *s
     memmove(address + 1 + SCRIPT_HASH_LEN, address_hash_result_1, SCRIPT_HASH_CHECKSUM_LEN);
 
     // encode the version + address + cehcksum in base58
-    encode_base_58(address, ADDRESS_LEN, dest, dest_len);
+    unsigned int encode_len = encode_base_58(address, ADDRESS_LEN, dest, dest_len);
+
+    // Add a null terminator to the end of the string.
+    // Base 58 address length should be inferior to dest_len so we can safely add the null
+    // terminator.
+    LEDGER_ASSERT(encode_len < dest_len,
+                  "to_address : Base 58 address length too long for dest_len.");
+    dest[encode_len] = '\0';
 }
 
 /** converts a byte array in src to a hex array in dest, using only dest_len bytes of dest before
@@ -738,7 +745,7 @@ unsigned char display_tx_desc() {
     unsigned char *script_hash2 = script_hash + script_hash_len0 + script_hash_len1;
 #endif
 
-    char address_base58[ADDRESS_BASE58_LEN];
+    char address_base58[ADDRESS_BASE58_LEN + 1];
 #ifdef HAVE_BAGL
     unsigned int address_base58_len_0 = 11;
     unsigned int address_base58_len_1 = 11;
@@ -751,8 +758,8 @@ unsigned char display_tx_desc() {
         next_raw_tx_arr(asset_id, ASSET_ID_LEN);
         next_raw_tx_arr(value, VALUE_LEN);
         next_raw_tx_arr(script_hash, SCRIPT_HASH_LEN);
-        memset(address_base58, 0, ADDRESS_BASE58_LEN);
-        to_address(address_base58, ADDRESS_BASE58_LEN, script_hash);
+        memset(address_base58, 0, sizeof(address_base58));
+        to_address(address_base58, sizeof(address_base58), script_hash);
 
         // asset_id and value screen
         if (scr_ix < MAX_TX_TEXT_SCREENS) {
@@ -885,8 +892,8 @@ void display_public_key(const unsigned char *public_key) {
         script_hash_rev[i] = script_hash[SCRIPT_HASH_LEN - (i + 1)];
     }
 
-    char address_base58[ADDRESS_BASE58_LEN];
-    to_address(address_base58, ADDRESS_BASE58_LEN, script_hash);
+    char address_base58[ADDRESS_BASE58_LEN + 1] = {0};
+    to_address(address_base58, sizeof(address_base58), script_hash);
 #ifdef HAVE_BAGL
     unsigned int address_base58_len_0 = 11;
     unsigned int address_base58_len_1 = 11;
