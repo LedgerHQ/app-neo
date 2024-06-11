@@ -28,13 +28,20 @@ def test_display_address(backend, firmware, navigator):
 
     if firmware.device == "nanos":
         pytest.skip("Nano S app does not implement address display ui.")
-    elif firmware.device == "stax":
+    elif firmware.device == "stax" or firmware.device == "flex":
+        if firmware.device == "stax":
+            y_touch = 520
+        else:
+            y_touch = 420
         navigator.navigate_and_compare(
             # Use custom touch coordinates to account for warning approve
             # button position.
             ROOT_SCREENSHOT_PATH,
             path,
-            [NavIns(NavInsID.TOUCH, (200, 520)), NavInsID.EXIT_FOOTER_TAP],
+            [
+                NavIns(NavInsID.TOUCH,
+                       (200, y_touch)), NavInsID.CENTERED_FOOTER_TAP
+            ],
             screen_change_before_first_instruction=False)
     else:
         navigator.navigate_and_compare(
@@ -53,13 +60,20 @@ def test_display_address(backend, firmware, navigator):
     # Get public key (this will update the UI to display the address)
     get_signed_public_key_and_validate(backend, DEFAULT_PATH)[1:]
 
-    if firmware.device == "stax":
+    if firmware.device == "stax" or firmware.device == "flex":
+        if firmware.device == "stax":
+            y_touch = 520
+        else:
+            y_touch = 420
         navigator.navigate_and_compare(
             # Use custom touch coordinates to account for warning approve
             # button position.
             ROOT_SCREENSHOT_PATH,
             path,
-            [NavIns(NavInsID.TOUCH, (200, 520)), NavInsID.EXIT_FOOTER_TAP],
+            [
+                NavIns(NavInsID.TOUCH,
+                       (200, y_touch)), NavInsID.CENTERED_FOOTER_TAP
+            ],
             screen_change_before_first_instruction=False,
             snap_start_idx=3)
     else:
