@@ -49,7 +49,7 @@ static void copy_tx_desc(void);
 
 /** UI was touched indicating the user wants to exit the app */
 static const bagl_element_t *io_seproxyhal_touch_exit(const bagl_element_t *e);
-#elif defined(TARGET_STAX)
+#elif defined(TARGET_STAX) || defined(TARGET_FLEX)
 #include "nbgl_page.h"
 #include "nbgl_use_case.h"
 #include "ux.h"
@@ -58,18 +58,6 @@ ux_state_t ux;
 ux_state_t G_ux;
 bolos_ux_params_t G_ux_params;
 
-#define NB_INFO_FIELDS 2
-static const char *const infoTypes[] = {"Version", "Developer"};
-static const char *const infoContents[] = {APPVERSION, "Ledger"};
-
-static nbgl_layoutTagValue_t fields[3];
-static nbgl_layoutTagValueList_t pairList;
-static nbgl_pageInfoLongPress_t infoLongPress;
-
-static void rejectUseCaseChoice(void);
-static void reviewChoice(bool confirm);
-static void reviewStart(void);
-static void pageCallback(int token, uint8_t index);
 #endif
 
 /** notification to restart the hash */
@@ -690,7 +678,21 @@ void ui_public_key_2(void) {
 ////////////////////////////////////////////////////////////////////////////////////////////////
 
 ////////////////////////////////////  STAX //////////////////////////////////////////////////
-#if defined(TARGET_STAX)
+#if defined(TARGET_STAX) || defined(TARGET_FLEX)
+
+#define NB_INFO_FIELDS 2
+static const char *const infoTypes[] = {"Version", "Developer"};
+static const char *const infoContents[] = {APPVERSION, "Ledger"};
+
+static nbgl_contentTagValue_t fields[3];
+static nbgl_contentTagValueList_t pairList;
+
+static void reviewChoice(bool confirm);
+static void reviewStart(void);
+static void pageCallback(int token, uint8_t index);
+
+static nbgl_homeAction_t homeAction;
+static nbgl_contentInfoList_t infoList;
 
 void onQuitCallback(void) {
     os_sched_exit(-1);
@@ -718,55 +720,18 @@ static void pageCallback(int token, uint8_t index) {
     }
 }
 
-static bool infoNavCallback(uint8_t page, nbgl_pageContent_t *content) {
-    if (page == 0) {
-        content->type = INFOS_LIST;
-        content->infosList.nbInfos = NB_INFO_FIELDS;
-        content->infosList.infoTypes = infoTypes;
-        content->infosList.infoContents = infoContents;
-    } else {
-        return false;
-    }
-    return true;
-}
-
-static void displayInfoMenu(void) {
-    nbgl_useCaseSettings(APPNAME, 0, 1, false, ui_idle, infoNavCallback, NULL);
-}
-
-static void displayTransaction(void) {
-    nbgl_useCaseStaticReview(&pairList, &infoLongPress, "Reject transaction", reviewChoice);
-}
-
 static void reviewChoice(bool confirm) {
     if (confirm) {
-        nbgl_useCaseStatus("TRANSACTION\nSIGNED", true, ui_idle);
         sign_tx_and_send_response();
+        nbgl_useCaseReviewStatus(STATUS_TYPE_TRANSACTION_SIGNED, ui_idle);
     } else {
-        rejectUseCaseChoice();
+        reject_tx_and_send_response();
+        nbgl_useCaseReviewStatus(STATUS_TYPE_TRANSACTION_REJECTED, ui_idle);
     }
-}
-
-static void rejectConfirm(void) {
-    nbgl_useCaseStatus("Transaction rejected", false, ui_idle);
-    reject_tx_and_send_response();
-}
-
-static void rejectUseCaseChoice(void) {
-    nbgl_useCaseConfirm("Reject transaction?",
-                        NULL,
-                        "Yes, Reject",
-                        "Go back to transaction",
-                        rejectConfirm);
 }
 
 static void reviewStart(void) {
     memset(&fields, 0, sizeof(fields));
-    memset(&infoLongPress, 0, sizeof(infoLongPress));
-
-    infoLongPress.text = "Sign transaction";
-    infoLongPress.longPressText = "Hold to sign";
-    infoLongPress.icon = &C_icon_64px;
 
     pairList.pairs = fields;
     pairList.nbPairs = 3;
@@ -778,12 +743,13 @@ static void reviewStart(void) {
     fields[2].item = "Destination Address";
     fields[2].value = tx_desc[2][0];
 
-    nbgl_useCaseReviewStart(&C_icon_64px,
-                            "Review transaction",
-                            NULL,
-                            "Reject transaction",
-                            displayTransaction,
-                            rejectUseCaseChoice);
+    nbgl_useCaseReview(TYPE_TRANSACTION,
+                       &pairList,
+                       &C_icon_64px,
+                       "Review transaction",
+                       NULL,
+                       "Sign transaction",
+                       reviewChoice);
 }
 #endif
 ////////////////////////////////////////////////////////////////////////////////////////////////
@@ -796,7 +762,7 @@ const void *sign_tx_and_send_response(void) {
     if (G_io_apdu_buffer[2] == P1_LAST) {
         unsigned int raw_tx_len_except_bip44 = raw_tx_len - BIP44_BYTE_LENGTH;
         // Update and sign the hash
-        cx_hash_no_throw(&tx_hash.header, 0, raw_tx, raw_tx_len_except_bip44, NULL, 0);
+        CX_ASSERT(cx_hash_no_throw(&tx_hash.header, 0, raw_tx, raw_tx_len_except_bip44, NULL, 0));
 
         unsigned char *bip44_in = raw_tx + raw_tx_len_except_bip44;
 
@@ -822,7 +788,7 @@ const void *sign_tx_and_send_response(void) {
         // Hash is finalized, send back the signature
         unsigned char result[32];
 
-        cx_hash_no_throw(&tx_hash.header, CX_LAST, G_io_apdu_buffer, 0, result, 32);
+        CX_ASSERT(cx_hash_no_throw(&tx_hash.header, CX_LAST, G_io_apdu_buffer, 0, result, 32));
 
         size_t sig_len = sizeof(G_io_apdu_buffer);
         if (cx_ecdsa_sign_no_throw((void *) &privateKey,
@@ -890,15 +856,23 @@ void ui_idle(void) {
         ux_stack_push();
     }
     ux_flow_init(0, ux_idle_flow, NULL);
-#elif defined(TARGET_STAX)
-    nbgl_useCaseHomeExt(APPNAME,
-                        &C_icon_64px,
-                        NULL,
-                        false,
-                        "Display account",
-                        displayAddress,
-                        displayInfoMenu,
-                        onQuitCallback);
+#elif defined(TARGET_STAX) || defined(TARGET_FLEX)
+    infoList.nbInfos = NB_INFO_FIELDS;
+    infoList.infoTypes = infoTypes;
+    infoList.infoContents = infoContents;
+
+    homeAction.text = "Display account";
+    homeAction.icon = NULL;
+    homeAction.callback = displayAddress;
+
+    nbgl_useCaseHomeAndSettings(APPNAME,
+                                &C_icon_64px,
+                                NULL,
+                                INIT_HOME_PAGE,
+                                NULL,
+                                &infoList,
+                                &homeAction,
+                                onQuitCallback);
 #endif  // #if TARGET_ID
 }
 
@@ -914,7 +888,7 @@ void ui_top_sign(void) {
         ux_stack_push();
     }
     ux_flow_init(0, ux_confirm_single_flow, NULL);
-#elif defined(TARGET_STAX)
+#elif defined(TARGET_STAX) || defined(TARGET_FLEX)
     reviewStart();
 #endif  // #if TARGET_ID
 }

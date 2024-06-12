@@ -26,15 +26,25 @@ include $(BOLOS_SDK)/Makefile.defines
 ########################################
 
 # Enabling DEBUG flag will enable PRINTF and disable optimizations
-#DEBUG = 1
+DEBUG = 0
+ifneq ($(DEBUG),0)
+    DEFINES += HAVE_PRINTF
+    ifeq ($(TARGET_NAME),TARGET_NANOS)
+        DEFINES += PRINTF=screen_printf
+    else
+        DEFINES += PRINTF=mcu_usb_printf
+    endif
+else
+        DEFINES += PRINTF\(...\)=
+endif
 
 # Application name
 APPNAME = "NEO"
 
 # Application version
 APPVERSION_M= 1
-APPVERSION_N= 3
-APPVERSION_P= 9
+APPVERSION_N= 4
+APPVERSION_P= 0
 APPVERSION = "$(APPVERSION_M).$(APPVERSION_N).$(APPVERSION_P)"
 
 # Application source files
@@ -45,6 +55,7 @@ ICON_NANOS = nanos_app_neo.gif
 ICON_STAX = stax_app_neo.gif
 ICON_NANOX = nanox_app_neo.gif
 ICON_NANOSP = nanox_app_neo.gif
+ICON_FLEX = flex_app_neo.gif
 
 # Application allowed derivation curves.
 CURVE_APP_LOAD_PARAMS = secp256r1

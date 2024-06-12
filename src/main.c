@@ -220,8 +220,11 @@ static void neo_main(void) {
                         }
 
                         // generate the public key.
-                        cx_ecdsa_init_public_key(CX_CURVE_256R1, NULL, 0, &publicKey);
-                        cx_ecfp_generate_pair_no_throw(CX_CURVE_256R1, &publicKey, &privateKey, 1);
+                        CX_ASSERT(cx_ecdsa_init_public_key(CX_CURVE_256R1, NULL, 0, &publicKey));
+                        CX_ASSERT(cx_ecfp_generate_pair_no_throw(CX_CURVE_256R1,
+                                                                 &publicKey,
+                                                                 &privateKey,
+                                                                 1));
 
                         // push the public key onto the response buffer.
                         memmove(G_io_apdu_buffer, publicKey.W, 65);
@@ -239,7 +242,12 @@ static void neo_main(void) {
                         cx_sha256_t pubKeyHash;
                         cx_sha256_init(&pubKeyHash);
 
-                        cx_hash_no_throw(&pubKeyHash.header, CX_LAST, publicKey.W, 65, result, 32);
+                        CX_ASSERT(cx_hash_no_throw(&pubKeyHash.header,
+                                                   CX_LAST,
+                                                   publicKey.W,
+                                                   65,
+                                                   result,
+                                                   32));
                         size_t sig_len = sizeof(G_io_apdu_buffer) - tx;
 
                         if (cx_ecdsa_sign_no_throw((void *) &privateKey,

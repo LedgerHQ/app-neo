@@ -82,11 +82,11 @@ def get_packed_path():
 
 
 def navigate(firmware, navigator, snappath: Path = None):
-    if firmware.device == "stax":
+    if firmware.device == "stax" or firmware.device == "flex":
         navigator.navigate_until_text_and_compare(
             # Use custom touch coordinates to account for warning approve
             # button position.
-            NavInsID.USE_CASE_REVIEW_TAP,
+            NavInsID.SWIPE_CENTER_TO_LEFT,
             [
                 NavInsID.USE_CASE_REVIEW_CONFIRM,
                 NavInsID.USE_CASE_STATUS_DISMISS, NavInsID.WAIT_FOR_HOME_SCREEN
