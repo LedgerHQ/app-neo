@@ -1,142 +1,102 @@
-#*******************************************************************************
-#   Ledger Blue
-#   (c) 2016 Ledger
+# ****************************************************************************
+#    Neo Ledger App
+#    (c) 2023 Ledger SAS.
 #
-#  Licensed under the Apache License, Version 2.0 (the "License");
-#  you may not use this file except in compliance with the License.
-#  You may obtain a copy of the License at
+#   Licensed under the Apache License, Version 2.0 (the "License");
+#   you may not use this file except in compliance with the License.
+#   You may obtain a copy of the License at
 #
-#      http://www.apache.org/licenses/LICENSE-2.0
+#       http://www.apache.org/licenses/LICENSE-2.0
 #
-#  Unless required by applicable law or agreed to in writing, software
-#  distributed under the License is distributed on an "AS IS" BASIS,
-#  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-#  See the License for the specific language governing permissions and
-#  limitations under the License.
-#*******************************************************************************
+#   Unless required by applicable law or agreed to in writing, software
+#   distributed under the License is distributed on an "AS IS" BASIS,
+#   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#   See the License for the specific language governing permissions and
+#   limitations under the License.
+# ****************************************************************************
 
 ifeq ($(BOLOS_SDK),)
-$(error BOLOS_SDK is not set)
+$(error Environment variable BOLOS_SDK is not set)
 endif
+
 include $(BOLOS_SDK)/Makefile.defines
 
-# Main app configuration
+########################################
+#        Mandatory configuration       #
+########################################
 
-APPNAME = "NEO"
-APPVERSION = 1.3.7
-APP_LOAD_PARAMS = --path "44'/888'" --path "44'/1024'" --appFlags 0x240 --apdu $(COMMON_LOAD_PARAMS)
-APP_DELETE_PARAMS =  --apdu $(COMMON_DELETE_PARAMS)
-
-ifeq ($(TARGET_NAME),TARGET_BLUE)
-ICONNAME=blue_app_neo.gif
-else ifeq ($(TARGET_NAME),TARGET_NANOS)
-ICONNAME=nanos_app_neo.gif
-else
-ICONNAME=nanox_app_neo.gif
-endif
-
-
-# Build configuration
-
-DEFINES += APPVERSION=\"$(APPVERSION)\"
-
-DEFINES += OS_IO_SEPROXYHAL
-DEFINES += HAVE_BAGL HAVE_SPRINTF
-
-
-DEFINES += HAVE_IO_USB HAVE_L4_USBLIB IO_USB_MAX_ENDPOINTS=4 IO_HID_EP_LENGTH=64 HAVE_USB_APDU
-
-DEFINES += USB_SEGMENT_SIZE=64
-DEFINES += U2F_PROXY_MAGIC=\"NEO\"
-DEFINES += HAVE_IO_U2F
-
-#WEBUSB_URL     = www.ledgerwallet.com
-#DEFINES       += HAVE_WEBUSB WEBUSB_URL_SIZE_B=$(shell echo -n $(WEBUSB_URL) | wc -c) WEBUSB_URL=$(shell echo -n $(WEBUSB_URL) | sed -e "s/./\\\'\0\\\',/g")
-DEFINES   += HAVE_WEBUSB WEBUSB_URL_SIZE_B=0 WEBUSB_URL=""
-
-ifeq ($(TARGET_NAME),TARGET_NANOX)
-DEFINES       += HAVE_BLE BLE_COMMAND_TIMEOUT_MS=2000
-DEFINES       += HAVE_BLE_APDU # basic ledger apdu transport over BLE
-endif
-
-ifeq ($(TARGET_NAME),TARGET_NANOS)
-DEFINES       += IO_SEPROXYHAL_BUFFER_SIZE_B=128
-else
-DEFINES       += IO_SEPROXYHAL_BUFFER_SIZE_B=300
-DEFINES       += HAVE_GLO096
-DEFINES       += HAVE_BAGL BAGL_WIDTH=128 BAGL_HEIGHT=64
-DEFINES       += HAVE_BAGL_ELLIPSIS # long label truncation feature
-DEFINES       += HAVE_BAGL_FONT_OPEN_SANS_REGULAR_11PX
-DEFINES       += HAVE_BAGL_FONT_OPEN_SANS_EXTRABOLD_11PX
-DEFINES       += HAVE_BAGL_FONT_OPEN_SANS_LIGHT_16PX
-DEFINES       += HAVE_UX_FLOW
-endif
-
-# Enabling debug PRINTF
+# Enabling DEBUG flag will enable PRINTF and disable optimizations
 DEBUG = 0
 ifneq ($(DEBUG),0)
-
-        ifeq ($(TARGET_NAME),TARGET_NANOS)
-                DEFINES   += HAVE_PRINTF PRINTF=screen_printf
-        else
-                DEFINES   += HAVE_PRINTF PRINTF=mcu_usb_printf
-        endif
+    DEFINES += HAVE_PRINTF
+    ifeq ($(TARGET_NAME),TARGET_NANOS)
+        DEFINES += PRINTF=screen_printf
+    else
+        DEFINES += PRINTF=mcu_usb_printf
+    endif
 else
-        DEFINES   += PRINTF\(...\)=
+        DEFINES += PRINTF\(...\)=
 endif
 
-##############
-#  Compiler  #
-##############
-ifneq ($(BOLOS_ENV),)
-$(info BOLOS_ENV=$(BOLOS_ENV))
-CLANGPATH := $(BOLOS_ENV)/clang-arm-fropi/bin/
-GCCPATH := $(BOLOS_ENV)/gcc-arm-none-eabi-5_3-2016q1/bin/
-else
-$(info BOLOS_ENV is not set: falling back to CLANGPATH and GCCPATH)
-endif
+# Application name
+APPNAME = "NEO"
 
-ifeq ($(CLANGPATH),)
-$(info CLANGPATH is not set: clang will be used from PATH)
-endif
+# Application version
+APPVERSION_M= 1
+APPVERSION_N= 4
+APPVERSION_P= 0
+APPVERSION = "$(APPVERSION_M).$(APPVERSION_N).$(APPVERSION_P)"
 
-ifeq ($(GCCPATH),)
-$(info GCCPATH is not set: arm-none-eabi-* will be used from PATH)
-endif
-
-CC := $(CLANGPATH)clang
-CFLAGS += -O3 -Os
-
-AS := $(GCCPATH)arm-none-eabi-gcc
-AFLAGS +=
-
-LD := $(GCCPATH)arm-none-eabi-gcc
-LDFLAGS += -O3 -Os
-LDLIBS += -lm -lgcc -lc
-
+# Application source files
 APP_SOURCE_PATH += src
-SDK_SOURCE_PATH += lib_stusb lib_stusb_impl lib_u2f
-SDK_SOURCE_PATH += lib_ux
 
-ifeq ($(TARGET_NAME),TARGET_NANOX)
-SDK_SOURCE_PATH  += lib_blewbxx lib_blewbxx_impl
+# Application icons
+ICON_NANOS = nanos_app_neo.gif
+ICON_STAX = stax_app_neo.gif
+ICON_NANOX = nanox_app_neo.gif
+ICON_NANOSP = nanox_app_neo.gif
+ICON_FLEX = flex_app_neo.gif
+
+# Application allowed derivation curves.
+CURVE_APP_LOAD_PARAMS = secp256r1
+
+# Application allowed derivation paths.
+PATH_APP_LOAD_PARAMS = "44'/888'" "44'/1024'"
+
+# Setting to allow building variant applications
+VARIANT_PARAM = COIN
+VARIANT_VALUES = neo
+
+########################################
+#     Application custom permissions   #
+########################################
+# See SDK `include/appflags.h` for the purpose of each permission
+HAVE_APPLICATION_FLAG_BOLOS_SETTINGS = 1
+HAVE_APPLICATION_FLAG_GLOBAL_PIN = 1
+
+# U2F
+DEFINES   += HAVE_IO_U2F U2F_PROXY_MAGIC=\"NEO\"
+SDK_SOURCE_PATH  += lib_stusb lib_stusb_impl lib_u2f 
+
+########################################
+# Application communication interfaces #
+########################################
+ENABLE_BLUETOOTH = 1
+
+########################################
+#         NBGL custom features         #
+########################################
+ENABLE_NBGL_QRCODE = 1
+
+# Use only specific files from standard app
+DISABLE_STANDARD_APP_FILES = 1
+APP_SOURCE_FILES += ${BOLOS_SDK}/lib_standard_app/io.c
+APP_SOURCE_FILES += ${BOLOS_SDK}/lib_standard_app/crypto_helpers.c
+INCLUDES_PATH += ${BOLOS_SDK}/lib_standard_app
+
+ifeq ($(TARGET_NAME), TARGET_NANOS)
+DISABLE_STANDARD_BAGL_UX_FLOW = 1
 endif
 
-# Main rules
+include $(BOLOS_SDK)/Makefile.standard_app
 
-all: default
-
-load: all
-	python -m ledgerblue.loadApp $(APP_LOAD_PARAMS)
-
-delete:
-	python -m ledgerblue.deleteApp $(APP_DELETE_PARAMS)
-
-# import rules to compile glyphs(/pone)
-include $(BOLOS_SDK)/Makefile.glyphs
-
-# Import generic rules from the SDK
-include $(BOLOS_SDK)/Makefile.rules
-
-listvariants:
-	@echo VARIANTS COIN neo
