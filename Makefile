@@ -47,10 +47,10 @@ APPVERSION = "$(APPVERSION_M).$(APPVERSION_N).$(APPVERSION_P)"
 APP_SOURCE_PATH += src
 
 # Application icons
-ICON_STAX = stax_app_neo.gif
-ICON_NANOX = nanox_app_neo.gif
-ICON_NANOSP = nanox_app_neo.gif
-ICON_FLEX = flex_app_neo.gif
+ICON_STAX = icons/stax_app_neo.gif
+ICON_NANOX = icons/nanox_app_neo.gif
+ICON_NANOSP = icons/nanox_app_neo.gif
+ICON_FLEX = icons/flex_app_neo.gif
 
 # Application allowed derivation curves.
 CURVE_APP_LOAD_PARAMS = secp256r1

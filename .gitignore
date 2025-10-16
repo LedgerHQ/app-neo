@@ -1,6 +1,18 @@
-.DS_Store
+# Compilation files of the application
+build/
 
+# Legacy compilation output
 bin/
 debug/
-build/
+
+# Temporary directory with snapshots taken during test runs
 test/snapshots-tmp
+
+# Python
+*.pyc[cod]
+*.egg
+__pycache__/
+*.egg-info/
+.eggs/
+.python-version
+
