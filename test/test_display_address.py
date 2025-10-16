@@ -26,9 +26,7 @@ import pytest
 def test_display_address(backend, firmware, navigator):
     path = Path(currentframe().f_code.co_name)
 
-    if firmware.device == "nanos":
-        pytest.skip("Nano S app does not implement address display ui.")
-    elif firmware.device == "stax" or firmware.device == "flex":
+    if firmware.device == "stax" or firmware.device == "flex":
         if firmware.device == "stax":
             y_touch = 520
         else:

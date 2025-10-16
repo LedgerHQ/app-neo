@@ -29,11 +29,7 @@ include $(BOLOS_SDK)/Makefile.defines
 DEBUG = 0
 ifneq ($(DEBUG),0)
     DEFINES += HAVE_PRINTF
-    ifeq ($(TARGET_NAME),TARGET_NANOS)
-        DEFINES += PRINTF=screen_printf
-    else
-        DEFINES += PRINTF=mcu_usb_printf
-    endif
+    DEFINES += PRINTF=mcu_usb_printf
 else
         DEFINES += PRINTF\(...\)=
 endif
@@ -51,7 +47,6 @@ APPVERSION = "$(APPVERSION_M).$(APPVERSION_N).$(APPVERSION_P)"
 APP_SOURCE_PATH += src
 
 # Application icons
-ICON_NANOS = nanos_app_neo.gif
 ICON_STAX = stax_app_neo.gif
 ICON_NANOX = nanox_app_neo.gif
 ICON_NANOSP = nanox_app_neo.gif
@@ -94,9 +89,6 @@ APP_SOURCE_FILES += ${BOLOS_SDK}/lib_standard_app/io.c
 APP_SOURCE_FILES += ${BOLOS_SDK}/lib_standard_app/crypto_helpers.c
 INCLUDES_PATH += ${BOLOS_SDK}/lib_standard_app
 
-ifeq ($(TARGET_NAME), TARGET_NANOS)
-DISABLE_STANDARD_BAGL_UX_FLOW = 1
-endif
 
 include $(BOLOS_SDK)/Makefile.standard_app
 

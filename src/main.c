@@ -42,16 +42,6 @@
 #define INS_GET_SIGNED_PUBLIC_KEY 0x08
 /** #### instructions end #### */
 
-#if defined(TARGET_NANOS)
-/** refreshes the display if the public key was changed ans we are on the page displaying the public
- * key */
-static void refresh_public_key_display(void) {
-    if ((uiState == UI_PUBLIC_KEY_1) || (uiState == UI_PUBLIC_KEY_2)) {
-        publicKeyNeedsRefresh = 1;
-    }
-}
-#endif
-
 /** main loop. */
 static void neo_main(void) {
     volatile unsigned int rx = 0;
@@ -182,9 +172,6 @@ static void neo_main(void) {
                         tx = sizeof(raw_pubkey);
 
                         display_public_key(raw_pubkey);
-#if defined(TARGET_NANOS)
-                        refresh_public_key_display();
-#endif
                         // return 0x9000 OK.
                         THROW(0x9000);
                     } break;
@@ -231,9 +218,6 @@ static void neo_main(void) {
                         tx = 65;
 
                         display_public_key(publicKey.W);
-#if defined(TARGET_NANOS)
-                        refresh_public_key_display();
-#endif
                         G_io_apdu_buffer[tx++] = 0xFF;
                         G_io_apdu_buffer[tx++] = 0xFF;
 
