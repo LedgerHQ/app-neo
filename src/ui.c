@@ -5,6 +5,12 @@
 #include "ui.h"
 #include "glyphs.h"
 #include "crypto_helpers.h"
+#include "ux.h"
+#include "io.h"
+
+#ifdef HAVE_NBGL
+#include "nbgl_use_case.h"
+#endif
 
 /** default font */
 #define DEFAULT_FONT BAGL_FONT_OPEN_SANS_EXTRABOLD_11px | BAGL_FONT_ALIGNMENT_CENTER
@@ -19,25 +25,6 @@ int exit_timer;
 
 /** display for the timer */
 char timer_desc[MAX_TIMER_TEXT_WIDTH];
-
-/** UI state enum */
-enum UI_STATE uiState;
-
-/** UI state flag */
-#if defined(TARGET_NANOX) || defined(TARGET_NANOS2)
-#include "ux.h"
-ux_state_t G_ux;
-bolos_ux_params_t G_ux_params;
-#elif defined(TARGET_STAX) || defined(TARGET_FLEX)
-#include "nbgl_page.h"
-#include "nbgl_use_case.h"
-#include "ux.h"
-
-ux_state_t ux;
-ux_state_t G_ux;
-bolos_ux_params_t G_ux_params;
-
-#endif
 
 /** notification to restart the hash */
 unsigned char hashTainted;
@@ -73,13 +60,13 @@ char curr_tx_desc[MAX_TX_TEXT_LINES][MAX_TX_TEXT_WIDTH];
 char address58[MAX_TX_TEXT_LINES][MAX_TX_TEXT_WIDTH];
 
 /** UI was touched indicating the user wants to deny te signature request */
-static const void *reject_tx_and_send_response(void);
+static int reject_tx_and_send_response(void);
 
 /** sets the tx_desc variables to no information */
 static void clear_tx_desc(void);
 
 ////////////////////////////////////  NANO X //////////////////////////////////////////////////
-#if defined(TARGET_NANOX) || defined(TARGET_NANOS2)
+#ifdef SCREEN_SIZE_NANO
 
 UX_STEP_NOCB(ux_confirm_single_flow_1_step, pnn, {&C_icon_eye, "Review", "Transaction"});
 UX_STEP_NOCB(ux_confirm_single_flow_2_step, bn, {"Type", tx_desc[0][1]});
@@ -122,7 +109,7 @@ UX_STEP_VALID(ux_display_public_go_back_step,
               pb,
               ui_idle(),
               {
-                  &C_icon_back,
+                  &C_icon_back_x,
                   "Back",
               });
 
@@ -155,7 +142,7 @@ UX_STEP_VALID(ux_idle_flow_4_step,
               pb,
               os_sched_exit(-1),
               {
-                  &C_icon_dashboard,
+                  &C_icon_dashboard_x,
                   "Quit",
               });
 
@@ -165,11 +152,11 @@ UX_FLOW(ux_idle_flow,
         &ux_idle_flow_3_step,
         &ux_idle_flow_4_step);
 
-#endif
+#endif  // SCREEN_SIZE_NANO
 ////////////////////////////////////////////////////////////////////////////////////////////////
 
 ////////////////////////////////////  STAX //////////////////////////////////////////////////
-#if defined(TARGET_STAX) || defined(TARGET_FLEX)
+#ifdef SCREEN_SIZE_WALLET
 
 #define NB_INFO_FIELDS 2
 static const char *const infoTypes[] = {"Version", "Developer"};
@@ -242,12 +229,12 @@ static void reviewStart(void) {
                        "Sign transaction",
                        reviewChoice);
 }
-#endif
+#endif  // SCREEN_SIZE_WALLET
 ////////////////////////////////////////////////////////////////////////////////////////////////
 
 /** processes the transaction approval. the UI is only displayed when all of the TX has been sent
  * over for signing. */
-const void *sign_tx_and_send_response(void) {
+int sign_tx_and_send_response(void) {
     unsigned int tx = 0;
 
     if (G_io_apdu_buffer[2] == P1_LAST) {
@@ -262,8 +249,7 @@ const void *sign_tx_and_send_response(void) {
         unsigned int bip44_path[BIP44_PATH_LEN];
         uint32_t i;
         for (i = 0; i < BIP44_PATH_LEN; i++) {
-            bip44_path[i] =
-                (bip44_in[0] << 24) | (bip44_in[1] << 16) | (bip44_in[2] << 8) | (bip44_in[3]);
+            bip44_path[i] = U4BE(bip44_in, 0);
             bip44_in += 4;
         }
 
@@ -273,13 +259,18 @@ const void *sign_tx_and_send_response(void) {
                                           BIP44_PATH_LEN,
                                           &privateKey,
                                           NULL) != CX_OK) {
-            THROW(0x6D00);
+            return io_send_sw(0x6D00);
         }
 
         // Hash is finalized, send back the signature
         unsigned char result[32];
 
-        CX_ASSERT(cx_hash_no_throw(&tx_hash.header, CX_LAST, G_io_apdu_buffer, 0, result, 32));
+        CX_ASSERT(cx_hash_no_throw(&tx_hash.header,
+                                   CX_LAST,
+                                   G_io_apdu_buffer,
+                                   0,
+                                   result,
+                                   sizeof(result)));
 
         size_t sig_len = sizeof(G_io_apdu_buffer);
         if (cx_ecdsa_sign_no_throw((void *) &privateKey,
@@ -290,7 +281,7 @@ const void *sign_tx_and_send_response(void) {
                                    G_io_apdu_buffer,
                                    &sig_len,
                                    NULL) != CX_OK) {
-            THROW(0x6D00);
+            return io_send_sw(0x6D00);
         }
         tx = sig_len;
 
@@ -303,31 +294,25 @@ const void *sign_tx_and_send_response(void) {
         // add hash to the response, so we can see where the bug is.
         G_io_apdu_buffer[tx++] = 0xFF;
         G_io_apdu_buffer[tx++] = 0xFF;
-        for (int ix = 0; ix < 32; ix++) {
+        for (uint32_t ix = 0; ix < sizeof(result); ix++) {
             G_io_apdu_buffer[tx++] = result[ix];
         }
     }
-    G_io_apdu_buffer[tx++] = 0x90;
-    G_io_apdu_buffer[tx++] = 0x00;
-    // Send back the response, do not restart the event loop
-    io_exchange(CHANNEL_APDU | IO_RETURN_AFTER_TX, tx);
     // Display back the original UX
 #ifdef HAVE_BAGL
     ui_idle();
 #endif
-    return 0;  // do not redraw the widget
+    return io_send_response_pointer(G_io_apdu_buffer, tx, SWO_SUCCESS);
 }
 
 /** deny signing. */
-static const void *reject_tx_and_send_response(void) {
+static int reject_tx_and_send_response(void) {
     hashTainted = 1;
     clear_tx_desc();
     raw_tx_ix = 0;
     raw_tx_len = 0;
-    G_io_apdu_buffer[0] = 0x69;
-    G_io_apdu_buffer[1] = 0x85;
     // Send back the response, do not restart the event loop
-    io_exchange(CHANNEL_APDU | IO_RETURN_AFTER_TX, 2);
+    return io_send_sw(SWO_CONDITIONS_NOT_SATISFIED);
     // Display back the original UX
 #ifdef HAVE_BAGL
     ui_idle();
@@ -337,15 +322,13 @@ static const void *reject_tx_and_send_response(void) {
 
 /** show the idle screen. */
 void ui_idle(void) {
-    uiState = UI_IDLE;
-
-#if defined(TARGET_NANOX) || defined(TARGET_NANOS2)
+#if defined(SCREEN_SIZE_NANO)
     // reserve a display stack slot if none yet
     if (G_ux.stack_count == 0) {
         ux_stack_push();
     }
     ux_flow_init(0, ux_idle_flow, NULL);
-#elif defined(TARGET_STAX) || defined(TARGET_FLEX)
+#elif defined(SCREEN_SIZE_WALLET)
     infoList.nbInfos = NB_INFO_FIELDS;
     infoList.infoTypes = infoTypes;
     infoList.infoContents = infoContents;
@@ -362,28 +345,20 @@ void ui_idle(void) {
                                 &infoList,
                                 &homeAction,
                                 onQuitCallback);
-#endif  // #if TARGET_ID
+#endif  // # SCREEN_SIZE_xxx
 }
 
 /** show the top "Sign Transaction" screen. */
 void ui_top_sign(void) {
-    uiState = UI_TOP_SIGN;
-
-#if defined(TARGET_NANOX) || defined(TARGET_NANOS2)
+#if defined(SCREEN_SIZE_NANO)
     // reserve a display stack slot if none yet
     if (G_ux.stack_count == 0) {
         ux_stack_push();
     }
     ux_flow_init(0, ux_confirm_single_flow, NULL);
-#elif defined(TARGET_STAX) || defined(TARGET_FLEX)
+#elif defined(SCREEN_SIZE_WALLET)
     reviewStart();
-#endif  // #if TARGET_ID
-}
-
-/** returns the length of the transaction in the buffer. */
-unsigned int get_apdu_buffer_length() {
-    unsigned int len0 = G_io_apdu_buffer[APDU_BODY_LENGTH_OFFSET];
-    return len0;
+#endif  // # SCREEN_SIZE_xxx
 }
 
 /** sets the tx_desc variables to no information */

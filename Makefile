@@ -27,12 +27,6 @@ include $(BOLOS_SDK)/Makefile.defines
 
 # Enabling DEBUG flag will enable PRINTF and disable optimizations
 DEBUG = 0
-ifneq ($(DEBUG),0)
-    DEFINES += HAVE_PRINTF
-    DEFINES += PRINTF=mcu_usb_printf
-else
-        DEFINES += PRINTF\(...\)=
-endif
 
 # Application name
 APPNAME = "NEO"
@@ -71,7 +65,7 @@ HAVE_APPLICATION_FLAG_GLOBAL_PIN = 1
 
 # U2F
 DEFINES   += HAVE_IO_U2F U2F_PROXY_MAGIC=\"NEO\"
-SDK_SOURCE_PATH  += lib_stusb lib_stusb_impl lib_u2f 
+SDK_SOURCE_PATH  += lib_u2f
 
 ########################################
 # Application communication interfaces #
@@ -83,12 +77,4 @@ ENABLE_BLUETOOTH = 1
 ########################################
 ENABLE_NBGL_QRCODE = 1
 
-# Use only specific files from standard app
-DISABLE_STANDARD_APP_FILES = 1
-APP_SOURCE_FILES += ${BOLOS_SDK}/lib_standard_app/io.c
-APP_SOURCE_FILES += ${BOLOS_SDK}/lib_standard_app/crypto_helpers.c
-INCLUDES_PATH += ${BOLOS_SDK}/lib_standard_app
-
-
 include $(BOLOS_SDK)/Makefile.standard_app
-
