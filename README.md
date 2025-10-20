@@ -1,13 +1,15 @@
-# error codes
+# Neo Application
+
+## error codes
 
 any response that doesn not end with `0x9000` is an error.
-Some errors are standard errors from the APDU (Application Protocol Data Unit)
-
-http://techmeonline.com/apdu-status-error-codes/
+Some errors are standard errors from the APDU (Application Protocol Data Unit).
+See [list](https://www.eftlab.com/knowledge-base/complete-list-of-apdu-responses)
 
 All errors on NEO 1.1 start with 0x6D (because I read the spec wrong).
 
-- `0x6D00` unknown command. (this is to spec, the rest are enoded as 'unknown command' `0x6D` but should be 'unknown parameter' `0x6B`)
+- `0x6D00` unknown command.
+  (this is to spec, the rest are enoded as 'unknown command' `0x6D` but should be 'unknown parameter' `0x6B`)
 - `0x6D01` error, unknown user interface screen, up button was pressed.
 - `0x6D02` error, unknown user interface screen, down button was pressed.
 - `0x6D03` buffer underflow in transaction parsing while skipping over bytes.
@@ -22,10 +24,10 @@ All errors on NEO 1.1 start with 0x6D (because I read the spec wrong).
 - `0x6D12` base_x encoded string is too long for available decoding memory.
 - `0x6D14` base_x encoding error.
 
+This will be fixed to use the correct codes (0x9210 No more storage available, 0x6B00 wrong parameter)
+in 1.2 sometime in 2018.
 
-This will be fixed to use the correct codes (0x9210 No more storage available, 0x6B00 wrong parameter) in 1.2, sometime in 2018.
-
-# blue-app-neo CE
+## blue-app-neo CE
 
 This is the community edition of the Ledger Nano S app for the NEO Cryptocoin.
 
@@ -43,17 +45,18 @@ The only difference between 'Sign Tx Now' and 'Sign Tx' is their placement order
 
 Note that in order to run `demo-GAS-NEO.py`, you must install the `fastecdsa` Python package:
 
-```
+```bash
 pip install ecdsa
 ```
 
-also install GMP (https://gmplib.org/)
+also install [GMP](https://gmplib.org/)
 
-See [The Environment Setup Guide](https://coranos.github.io/neo/ledger-nano-s/development/environment.html) if you want to build the appyourself..
 ========
 
-See [Ledger's documentation](http://ledger.readthedocs.io) to get started.
+See [Ledger's documentation](https://developers.ledger.com/) to get started.
+
 =======
-# blue-app-neo
+
+## blue-app-neo
 
 todo: key screen does not refresh, have to go in and out to see a refresh.

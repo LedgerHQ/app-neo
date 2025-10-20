@@ -59,7 +59,7 @@ char curr_tx_desc[MAX_TX_TEXT_LINES][MAX_TX_TEXT_WIDTH];
 /** currently displayed address */
 char address58[MAX_TX_TEXT_LINES][MAX_TX_TEXT_WIDTH];
 
-/** UI was touched indicating the user wants to deny te signature request */
+/** UI was touched indicating the user wants to deny the signature request */
 static int reject_tx_and_send_response(void);
 
 /** sets the tx_desc variables to no information */

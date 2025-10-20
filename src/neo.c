@@ -139,7 +139,7 @@ enum TransactionAttributeUsage {
 static const char TXT_BLANK[] = "                 ";
 
 /** #### Asset IDs #### */
-/** currently only NEO and GAS are supported, alll others show up as UNKNOWN */
+/** currently only NEO and GAS are supported, all others show up as UNKNOWN */
 
 /** NEO's asset id. */
 static const char NEO_ASSET_ID[] =
@@ -233,14 +233,14 @@ static const char HEX_CAP[] = {
     'F',
 };
 
-/** array of base58 aplhabet letters */
+/** array of base58 alphabet letters */
 static const char BASE_58_ALPHABET[] = {'1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C',
                                         'D', 'E', 'F', 'G', 'H', 'J', 'K', 'L', 'M', 'N', 'P', 'Q',
                                         'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z', 'a', 'b', 'c',
                                         'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'm', 'n', 'o', 'p',
                                         'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z'};
 
-/** array of base10 aplhabet letters */
+/** array of base10 alphabet letters */
 static const char BASE_10_ALPHABET[] = {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9'};
 
 /** reads a set of bytes into the array pointed to by the arr parameter, reads as many bytes as the
@@ -419,7 +419,7 @@ static int to_address(char *dest, unsigned int dest_len, const unsigned char *sc
     // add the first bytes of the hash as a checksum at the end of the address.
     memmove(address + 1 + SCRIPT_HASH_LEN, address_hash_result_1, SCRIPT_HASH_CHECKSUM_LEN);
 
-    // encode the version + address + cehcksum in base58
+    // encode the version + address + checksum in base58
     unsigned int encode_len = 0;
     ret = encode_base_58(address, ADDRESS_LEN, dest, dest_len, &encode_len);
     if (ret != 0) {
