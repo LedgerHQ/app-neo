@@ -13,6 +13,12 @@
 #include "bagl.h"
 #endif
 
+#if defined(TARGET_STAX) || defined(TARGET_FLEX)
+#define ICON_APP_HOME C_icon_64px
+#elif defined(TARGET_APEX_P)
+#define ICON_APP_HOME C_icon_48px
+#endif
+
 /** the timer */
 extern int exit_timer;
 

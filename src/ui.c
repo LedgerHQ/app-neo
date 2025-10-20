@@ -223,7 +223,7 @@ static void reviewStart(void) {
 
     nbgl_useCaseReview(TYPE_TRANSACTION,
                        &pairList,
-                       &C_icon_64px,
+                       &ICON_APP_HOME,
                        "Review transaction",
                        NULL,
                        "Sign transaction",
@@ -338,7 +338,7 @@ void ui_idle(void) {
     homeAction.callback = displayAddress;
 
     nbgl_useCaseHomeAndSettings(APPNAME,
-                                &C_icon_64px,
+                                &ICON_APP_HOME,
                                 NULL,
                                 INIT_HOME_PAGE,
                                 NULL,
