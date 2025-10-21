@@ -13,7 +13,7 @@ Wallet->Main Loop:Request Sent
 Main Loop->Main Loop:Checks Length Is Not Zero
 Main Loop-->>Wallet:On Error, return 0x6982
 Main Loop->Main Loop:Checks First Byte is 0x80
-Main Loop-->>Wallet:On Error, return 0x6E00 
+Main Loop-->>Wallet:On Error, return 0x6E00
 Main Loop->Main Loop:Checks Second Byte
 Main Loop->Get Public Key:INS_GET_PUBLIC_KEY
 Note over Get Public Key:[1]
@@ -28,4 +28,3 @@ Main Loop-->>Wallet:Unrecognized Command, return 0x6D00
 # B-->C: Dashed line
 # C->>D: Open arrow
 # D-->>A: Dashed open arrow
-

@@ -1,12 +1,12 @@
 import struct
-from pathlib import Path
 from hashlib import sha256
-from inspect import currentframe
 from ecdsa.curves import NIST256p
 from ecdsa.keys import VerifyingKey
 from ecdsa.util import sigdecode_der
+
 from ragger.bip import pack_derivation_path
-from ragger.navigator import NavInsID
+from ragger.backend.interface import BackendInterface, RAPDU
+from ragger.navigator.navigation_scenario import NavigateWithScenario
 
 CLA: int = 0x80
 INS_SIGN: int = 0x02
@@ -20,14 +20,11 @@ SIGDER_LEN_OFFSET: int = 1
 SIGNED_KEY_SIG_OFFSET: int = 65
 PATH_LEN: int = 20
 
-ROOT_SCREENSHOT_PATH = Path(__file__).parent.resolve()
 
+def check_tx_nist256(transaction: bytes, der_signature: bytes,
+                     public_key: bytes) -> None:
 
-def check_tx_nist256(transaction, der_signature, public_key):
-
-    pk: VerifyingKey = VerifyingKey.from_string(public_key,
-                                                curve=NIST256p,
-                                                hashfunc=sha256)
+    pk: VerifyingKey = VerifyingKey.from_string(public_key, NIST256p, sha256)
 
     assert pk.verify(signature=der_signature,
                      data=transaction,
@@ -46,7 +43,7 @@ def serialize(cla: int,
     return header + cdata
 
 
-def get_public_key(backend, bip44_path: str) -> bytes:
+def get_public_key(backend: BackendInterface, bip44_path: str) -> bytes:
     packed = serialize(
         cla=CLA,
         ins=INS_GET_PUBLIC_KEY,
@@ -57,7 +54,8 @@ def get_public_key(backend, bip44_path: str) -> bytes:
     return backend.exchange_raw(packed).data
 
 
-def get_signed_public_key_and_validate(backend, bip44_path: str) -> bytes:
+def get_signed_public_key_and_validate(backend: BackendInterface,
+                                       bip44_path: str) -> bytes:
     packed = serialize(
         cla=CLA,
         ins=INS_GET_SIGNED_PUBLIC_KEY,
@@ -77,33 +75,15 @@ def get_signed_public_key_and_validate(backend, bip44_path: str) -> bytes:
     return signed_key[:65]
 
 
-def get_packed_path():
+def get_packed_path() -> bytes:
     return pack_derivation_path(DEFAULT_PATH)[1:]
 
 
-def navigate(firmware, navigator, snappath: Path = None):
-    if firmware.device == "stax" or firmware.device == "flex":
-        navigator.navigate_until_text_and_compare(
-            # Use custom touch coordinates to account for warning approve
-            # button position.
-            NavInsID.SWIPE_CENTER_TO_LEFT,
-            [
-                NavInsID.USE_CASE_REVIEW_CONFIRM,
-                NavInsID.USE_CASE_STATUS_DISMISS, NavInsID.WAIT_FOR_HOME_SCREEN
-            ],
-            "Hold to",
-            ROOT_SCREENSHOT_PATH,
-            snappath)
-    else:
-        navigator.navigate_until_text_and_compare(NavInsID.RIGHT_CLICK,
-                                                  [NavInsID.BOTH_CLICK],
-                                                  "Accept",
-                                                  ROOT_SCREENSHOT_PATH,
-                                                  snappath)
-
-
-def sign_tx(backend, firmware, navigator, tx, path, do_navigate):
+def sign_tx(scenario_navigator: NavigateWithScenario, tx: bytes,
+            do_navigate: bool) -> RAPDU:
     offset = 0
+    backend = scenario_navigator.backend
+    custom_text = "Hold to" if backend.device.touchable else "Accept"
     while offset != len(tx):
         if (len(tx) - offset) > MAX_APDU_SIZE:
             chunk = tx[offset:offset + MAX_APDU_SIZE]
@@ -112,7 +92,8 @@ def sign_tx(backend, firmware, navigator, tx, path, do_navigate):
         if (offset + len(chunk)) == len(tx):
             with backend.exchange_async(CLA, INS_SIGN, P1_LAST, 0x00, chunk):
                 if do_navigate:
-                    navigate(firmware, navigator, path)
+                    scenario_navigator.review_approve(
+                        custom_screen_text=custom_text)
                 pass
             response = backend.last_async_response
         else:
@@ -121,12 +102,13 @@ def sign_tx(backend, firmware, navigator, tx, path, do_navigate):
     return response
 
 
-def sign_and_validate(backend, firmware, navigator, tx):
-    path = Path(currentframe().f_back.f_code.co_name)
+def sign_and_validate(scenario_navigator: NavigateWithScenario,
+                      tx: bytes) -> None:
     # Get public key
+    backend = scenario_navigator.backend
     publicKey = get_public_key(backend, DEFAULT_PATH)[1:]
     # Sign Tx
-    sigDer = sign_tx(backend, firmware, navigator, tx, path, True)
+    sigDer = sign_tx(scenario_navigator, tx, True)
     sigLen = sigDer.data[SIGDER_LEN_OFFSET]
     # Validate signature
     check_tx_nist256(tx[:-PATH_LEN], sigDer.data[:sigLen + 2], publicKey)

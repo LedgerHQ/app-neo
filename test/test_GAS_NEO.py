@@ -15,8 +15,11 @@
 # *  See the License for the specific language governing permissions and
 # *  limitations under the License.
 # ********************************************************************************
+from ragger.navigator.navigation_scenario import NavigateWithScenario
+
 from utils import get_packed_path, sign_and_validate
 
+# pylint: disable=line-too-long
 # sending to AHXSMB19pWytwJ7vzvCw5aWmd1DUniDKRT
 # sending 0.001 GAS
 #             80028000b38000000185e7e907cc5c5683e7fc926ba4be613d1810aebe14686b3675ee27d2476e5201000002e72d286979ee6cb1b7e65dfddfb2e384100b8d148e7758de42e4168b71792c60a08601000000000013354f4f5d3f989a221c794271e0bb2471c2735ee72d286979ee6cb1b7e65dfddfb2e384100b8d148e7758de42e4168b71792c60e23f01000000000013354f4f5d3f989a221c794271e0bb2471c2735e8000002c80000378800000000000000000000000
@@ -38,18 +41,19 @@ rawText_02 = bytearray.fromhex(
     "0200048d121f4bc2bf104e547e85d680780fe629c2b3ce89ac73e0ff02feb572bb98e00000e47d4e3d0563a53232466fa7752b28db6c0485ee79e57dacb2646418f4e7ffd400002101dd269ec13b66360b29eb6ac78ba44b772b2b6369b7dd5ff8dcd5dd1aafa00000a5c04ecb7ff482474062fe0cbe030e653c77d28545a38490780f33be7469cdae0000000001e72d286979ee6cb1b7e65dfddfb2e384100b8d148e7758de42e4168b71792c60276501000000000013354f4f5d3f989a221c794271e0bb2471c2735e"
 )
 textToSign_02 = rawText_02 + get_packed_path()
+# pylint: enable=line-too-long
 
 
-def test_send_gas(backend, firmware, navigator):
-    sign_and_validate(backend, firmware, navigator, textToSign_00)
+def test_send_gas(scenario_navigator: NavigateWithScenario) -> None:
+    sign_and_validate(scenario_navigator, textToSign_00)
 
 
-def test_send_neo(backend, firmware, navigator):
-    sign_and_validate(backend, firmware, navigator, textToSign_01)
+def test_send_neo(scenario_navigator: NavigateWithScenario) -> None:
+    sign_and_validate(scenario_navigator, textToSign_01)
 
 
-def test_claim_gas(backend, firmware, navigator):
-    sign_and_validate(backend, firmware, navigator, textToSign_02)
+def test_claim_gas(scenario_navigator: NavigateWithScenario) -> None:
+    sign_and_validate(scenario_navigator, textToSign_02)
 
 
 # signedPublicKey = dongle.exchange(

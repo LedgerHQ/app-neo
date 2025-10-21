@@ -139,7 +139,7 @@ enum TransactionAttributeUsage {
 static const char TXT_BLANK[] = "                 ";
 
 /** #### Asset IDs #### */
-/** currently only NEO and GAS are supported, alll others show up as UNKNOWN */
+/** currently only NEO and GAS are supported, all others show up as UNKNOWN */
 
 /** NEO's asset id. */
 static const char NEO_ASSET_ID[] =
@@ -233,22 +233,15 @@ static const char HEX_CAP[] = {
     'F',
 };
 
-/** array of base58 aplhabet letters */
+/** array of base58 alphabet letters */
 static const char BASE_58_ALPHABET[] = {'1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C',
                                         'D', 'E', 'F', 'G', 'H', 'J', 'K', 'L', 'M', 'N', 'P', 'Q',
                                         'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z', 'a', 'b', 'c',
                                         'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'm', 'n', 'o', 'p',
                                         'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z'};
 
-/** array of base10 aplhabet letters */
+/** array of base10 alphabet letters */
 static const char BASE_10_ALPHABET[] = {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9'};
-
-/** skips the given number of bytes in the transaction */
-static void skip_raw_tx(const unsigned int tx_skip);
-
-/** returns the number of bytes in the next variable byte record, called prior to reading a variable
- * byte record to know how many bytes to read. */
-static unsigned char next_raw_tx_varbytes_num();
 
 /** reads a set of bytes into the array pointed to by the arr parameter, reads as many bytes as the
  * length parameter specifies. */
@@ -256,7 +249,7 @@ static void next_raw_tx_arr(unsigned char *arr, const unsigned int length);
 
 /** reads the next byte out of the transaction, or throws an error if there are no more bytes left.
  */
-static unsigned char next_raw_tx();
+static int next_raw_tx(uint8_t *value);
 
 /** returns the minimum of i0 and i1 */
 static unsigned int min(const unsigned int i0, const unsigned int i1);
@@ -267,44 +260,55 @@ static void to_hex(char *dest, const unsigned char *src, const unsigned int dest
 
 /** encodes in_length bytes from in into the given base, using the given alphabet. writes the
  * converted bytes to out, stopping when it converts out_length bytes. */
-static unsigned int encode_base_x(const char *alphabet,
-                                  const unsigned int alphabet_len,
-                                  const void *in,
-                                  const unsigned int in_length,
-                                  char *out,
-                                  const unsigned int out_length);
+static int encode_base_x(const char *alphabet,
+                         const unsigned int alphabet_len,
+                         const void *in,
+                         const unsigned int in_length,
+                         char *out,
+                         const unsigned int out_length,
+                         unsigned int *true_out_length);
 
 /** encodes in_length bytes from in into base-10, writes the converted bytes to out, stopping when
  * it converts out_length bytes.  */
-static unsigned int encode_base_10(const void *in,
-                                   const unsigned int in_length,
-                                   char *out,
-                                   const unsigned int out_length) {
+static int encode_base_10(const void *in,
+                          const unsigned int in_length,
+                          char *out,
+                          const unsigned int out_length,
+                          unsigned int *true_out_length) {
     return encode_base_x(BASE_10_ALPHABET,
                          sizeof(BASE_10_ALPHABET),
                          in,
                          in_length,
                          out,
-                         out_length);
+                         out_length,
+                         true_out_length);
 }
 
 /** encodes in_length bytes from in into base-58, writes the converted bytes to out, stopping when
  * it converts out_length bytes.  */
-static unsigned int encode_base_58(const void *in,
-                                   const unsigned int in_len,
-                                   char *out,
-                                   const unsigned int out_len) {
-    return encode_base_x(BASE_58_ALPHABET, sizeof(BASE_58_ALPHABET), in, in_len, out, out_len);
+static int encode_base_58(const void *in,
+                          const unsigned int in_len,
+                          char *out,
+                          const unsigned int out_len,
+                          unsigned int *true_out_length) {
+    return encode_base_x(BASE_58_ALPHABET,
+                         sizeof(BASE_58_ALPHABET),
+                         in,
+                         in_len,
+                         out,
+                         out_len,
+                         true_out_length);
 }
 
 /** encodes in_length bytes from in into the given base, using the given alphabet. writes the
  * converted bytes to out, stopping when it converts out_length bytes. */
-static unsigned int encode_base_x(const char *alphabet,
-                                  const unsigned int alphabet_len,
-                                  const void *in,
-                                  const unsigned int in_length,
-                                  char *out,
-                                  const unsigned int out_length) {
+static int encode_base_x(const char *alphabet,
+                         const unsigned int alphabet_len,
+                         const void *in,
+                         const unsigned int in_length,
+                         char *out,
+                         const unsigned int out_length,
+                         unsigned int *true_out_length) {
     char tmp[64];
     char buffer[128];
     unsigned char buffer_ix;
@@ -312,7 +316,7 @@ static unsigned int encode_base_x(const char *alphabet,
     unsigned char zeroCount = 0;
     if (in_length > sizeof(tmp)) {
         hashTainted = 1;
-        THROW(0x6D11);
+        return 0x6D11;
     }
     memmove(tmp, in, in_length);
     while ((zeroCount < in_length) && (tmp[zeroCount] == 0)) {
@@ -321,7 +325,7 @@ static unsigned int encode_base_x(const char *alphabet,
     buffer_ix = 2 * in_length;
     if (buffer_ix > sizeof(buffer)) {
         hashTainted = 1;
-        THROW(0x6D12);
+        return 0x6D12;
     }
 
     startAt = zeroCount;
@@ -345,17 +349,18 @@ static unsigned int encode_base_x(const char *alphabet,
     while (zeroCount-- > 0) {
         buffer[--buffer_ix] = *(alphabet + 0);
     }
-    const unsigned int true_out_length = (2 * in_length) - buffer_ix;
-    if (true_out_length > out_length) {
-        THROW(0x6D14);
+    *true_out_length = (2 * in_length) - buffer_ix;
+    if (*true_out_length > out_length) {
+        return 0x6D14;
     }
-    memmove(out, (buffer + buffer_ix), true_out_length);
-    return true_out_length;
+    memmove(out, (buffer + buffer_ix), *true_out_length);
+    return 0;
 }
 
 /** converts a value to base10 with a decimal point at DECIMAL_PLACE_OFFSET, which should be
  * 100,000,000 or 100 million, thus the suffix 100m */
-static void to_base10_100m(char *dest, const unsigned char *value, const unsigned int dest_len) {
+static int to_base10_100m(char *dest, const unsigned char *value, const unsigned int dest_len) {
+    int ret = -1;
     UNUSED(dest_len);
     // reverse the array
     unsigned char reverse_value[VALUE_LEN];
@@ -365,8 +370,11 @@ static void to_base10_100m(char *dest, const unsigned char *value, const unsigne
 
     // encode in base10
     char base10_buffer[MAX_TX_TEXT_WIDTH];
-    unsigned int buffer_len =
-        encode_base_10(reverse_value, VALUE_LEN, base10_buffer, MAX_TX_TEXT_WIDTH);
+    unsigned int buffer_len = 0;
+    ret = encode_base_10(reverse_value, VALUE_LEN, base10_buffer, MAX_TX_TEXT_WIDTH, &buffer_len);
+    if (ret != 0) {
+        return ret;
+    }
 
     // place the decimal place.
     unsigned int dec_place_ix = buffer_len - DECIMAL_PLACE_OFFSET;
@@ -377,10 +385,12 @@ static void to_base10_100m(char *dest, const unsigned char *value, const unsigne
         memmove(dest, base10_buffer, dec_place_ix);
         memmove(dest + dec_place_ix + 1, base10_buffer + dec_place_ix, buffer_len - dec_place_ix);
     }
+    return 0;
 }
 
 /** converts a NEO scripthas to a NEO address by adding a checksum and encoding in base58 */
-static void to_address(char *dest, unsigned int dest_len, const unsigned char *script_hash) {
+static int to_address(char *dest, unsigned int dest_len, const unsigned char *script_hash) {
+    int ret = -1;
     static cx_sha256_t address_hash;
     unsigned char address_hash_result_0[SHA256_HASH_LEN];
     unsigned char address_hash_result_1[SHA256_HASH_LEN];
@@ -409,8 +419,12 @@ static void to_address(char *dest, unsigned int dest_len, const unsigned char *s
     // add the first bytes of the hash as a checksum at the end of the address.
     memmove(address + 1 + SCRIPT_HASH_LEN, address_hash_result_1, SCRIPT_HASH_CHECKSUM_LEN);
 
-    // encode the version + address + cehcksum in base58
-    unsigned int encode_len = encode_base_58(address, ADDRESS_LEN, dest, dest_len);
+    // encode the version + address + checksum in base58
+    unsigned int encode_len = 0;
+    ret = encode_base_58(address, ADDRESS_LEN, dest, dest_len, &encode_len);
+    if (ret != 0) {
+        return ret;
+    }
 
     // Add a null terminator to the end of the string.
     // Base 58 address length should be inferior to dest_len so we can safely add the null
@@ -418,6 +432,7 @@ static void to_address(char *dest, unsigned int dest_len, const unsigned char *s
     LEDGER_ASSERT(encode_len < dest_len,
                   "to_address : Base 58 address length too long for dest_len.");
     dest[encode_len] = '\0';
+    return 0;
 }
 
 /** converts a byte array in src to a hex array in dest, using only dest_len bytes of dest before
@@ -462,61 +477,77 @@ static unsigned int min(unsigned int i0, unsigned int i1) {
 
 /** skips the given number of bytes in the raw_tx buffer. If this goes off the end of the buffer,
  * throw an error. */
-static void skip_raw_tx(unsigned int tx_skip) {
+static int skip_raw_tx(unsigned int tx_skip) {
     raw_tx_ix += tx_skip;
     if (raw_tx_ix >= raw_tx_len) {
         hashTainted = 1;
-        THROW(0x6D03);
+        return 0x6D03;
     }
+    return 0;
 }
 
 /** returns the number of bytes to read for the next varbytes array.
  *  Currently throws an error if the encoded value should be over 253,
  *   which should never happen in this use case of a varbyte array
  */
-static unsigned char next_raw_tx_varbytes_num() {
-    unsigned char num = next_raw_tx();
+static int next_raw_tx_varbytes_num(uint8_t *value) {
+    int ret = -1;
+    uint8_t num = 0;
+    ret = next_raw_tx(&num);
+    if (ret != 0) {
+        return ret;
+    }
     switch (num) {
         case 0xFD:
         case 0xFE:
         case 0xFF:
             hashTainted = 1;
-            THROW(0x6D04);
+            ret = 0x6D04;
             break;
         default:
+            ret = 0;
+            *value = num;
             break;
     }
-    return num;
+    return ret;
 }
 
 /** fills the array in arr with the given number of bytes from raw_tx. */
 static void next_raw_tx_arr(unsigned char *arr, unsigned int length) {
     for (unsigned int ix = 0; ix < length; ix++) {
-        *(arr + ix) = next_raw_tx();
+        next_raw_tx(&arr[ix]);
     }
 }
 
 /** returns the next byte in raw_tx and increments raw_tx_ix. If this would increment raw_tx_ix over
  * the end of the buffer, throw an error. */
-static unsigned char next_raw_tx() {
+static int next_raw_tx(uint8_t *value) {
+    int ret = -1;
     if (raw_tx_ix < raw_tx_len) {
         unsigned char retval = raw_tx[raw_tx_ix];
         raw_tx_ix += 1;
-        return retval;
+        *value = retval;
+        ret = 0;
     } else {
         hashTainted = 1;
-        THROW(0x6D05);
-        return 0;
+        ret = 0x6D05;
     }
+    return ret;
 }
 
 /** parse the raw transaction in raw_tx and fill up the screens in tx_desc. */
-unsigned char display_tx_desc() {
+int display_tx_desc() {
+    int ret = -1;
+    uint8_t tx_value = 0;
     unsigned int scr_ix = 0;
     char hex_buffer[MAX_TX_TEXT_WIDTH];
     unsigned int hex_buffer_len = 0;
 
-    enum TX_TYPE trans_type = next_raw_tx();
+    ret = next_raw_tx(&tx_value);
+    if (ret != 0) {
+        return ret;
+    }
+    enum TX_TYPE trans_type = (enum TX_TYPE) tx_value;
     if (SHOW_TX_TYPE) {
         if (scr_ix < MAX_TX_TEXT_SCREENS) {
             // add transaction type screen.
@@ -556,7 +587,7 @@ unsigned char display_tx_desc() {
 
                 default:
                     hashTainted = 1;
-                    THROW(0x6D06);
+                    return 0x6D06;
             }
 
             if (SHOW_TX_LEN) {
@@ -571,7 +602,11 @@ unsigned char display_tx_desc() {
     }
 
     // the version screen.
-    unsigned char version = next_raw_tx();
+    unsigned char version = 0;
+    ret = next_raw_tx(&version);
+    if (ret != 0) {
+        return ret;
+    }
     if (SHOW_VERSION) {
         if (scr_ix < MAX_TX_TEXT_SCREENS) {
             memmove(tx_desc[scr_ix][0], TXT_VERSION, sizeof(TXT_VERSION));
@@ -589,14 +624,17 @@ unsigned char display_tx_desc() {
 
     // the exclusive data screen.
     switch (trans_type) {
-        case TX_CLAIM: {
-            unsigned char num_coin_claims = next_raw_tx_varbytes_num();
+        case TX_CLAIM:
+            ret = next_raw_tx_varbytes_num(&tx_value);
+            if (ret != 0) {
+                return ret;
+            }
             if (SHOW_EXCLUSIVE_DATA) {
                 if (scr_ix < MAX_TX_TEXT_SCREENS) {
                     memmove(tx_desc[scr_ix][0], TXT_CLAIMS, sizeof(TXT_CLAIMS));
 
-                    hex_buffer_len = min(MAX_HEX_BUFFER_LEN, sizeof(num_coin_claims)) * 2;
-                    to_hex(hex_buffer, &num_coin_claims, hex_buffer_len);
+                    hex_buffer_len = min(MAX_HEX_BUFFER_LEN, sizeof(tx_value)) * 2;
+                    to_hex(hex_buffer, &tx_value, hex_buffer_len);
                     memmove(tx_desc[scr_ix][1], hex_buffer, hex_buffer_len);
 
                     hex_buffer_len = min(MAX_HEX_BUFFER_LEN, sizeof(raw_tx_ix)) * 2;
@@ -605,28 +643,43 @@ unsigned char display_tx_desc() {
                     scr_ix++;
                 }
             }
-            skip_raw_tx(num_coin_claims * COIN_REFERENCES_LEN);
-        } break;
-        case TX_INVOKE: {
-            unsigned char script_len = next_raw_tx_varbytes_num();
-            skip_raw_tx(script_len);
+            ret = skip_raw_tx(tx_value * COIN_REFERENCES_LEN);
+            if (ret != 0) {
+                return ret;
+            }
+            break;
+        case TX_INVOKE:
+            ret = next_raw_tx_varbytes_num(&tx_value);
+            if (ret != 0) {
+                return ret;
+            }
+            ret = skip_raw_tx(tx_value);
+            if (ret != 0) {
+                return ret;
+            }
             if (version >= 1) {
                 // UInt64.SIZE = 8
-                skip_raw_tx(8);
+                ret = skip_raw_tx(8);
+                if (ret != 0) {
+                    return ret;
+                }
             }
-        } break;
+            break;
         default:
             break;
     }
 
     //  attributes screen.
-    unsigned char num_attr = next_raw_tx_varbytes_num();
+    ret = next_raw_tx_varbytes_num(&tx_value);
+    if (ret != 0) {
+        return ret;
+    }
     if (SHOW_NUM_ATTRIBUTES) {
         if (scr_ix < MAX_TX_TEXT_SCREENS) {
             memmove(tx_desc[scr_ix][0], TXT_NUM_ATTR, sizeof(TXT_NUM_ATTR));
 
-            hex_buffer_len = min(MAX_HEX_BUFFER_LEN, sizeof(num_attr)) * 2;
-            to_hex(hex_buffer, &num_attr, hex_buffer_len);
+            hex_buffer_len = min(MAX_HEX_BUFFER_LEN, sizeof(tx_value)) * 2;
+            to_hex(hex_buffer, &tx_value, hex_buffer_len);
             memmove(tx_desc[scr_ix][1], hex_buffer, hex_buffer_len);
 
             hex_buffer_len = min(MAX_HEX_BUFFER_LEN, sizeof(raw_tx_ix)) * 2;
@@ -636,8 +689,12 @@ unsigned char display_tx_desc() {
         }
     }
 
-    for (int attr_ix = 0; attr_ix < num_attr; attr_ix++) {
-        enum TransactionAttributeUsage attr_usage = next_raw_tx();
+    for (int attr_ix = 0; attr_ix < tx_value; attr_ix++) {
+        ret = next_raw_tx(&tx_value);
+        if (ret != 0) {
+            return ret;
+        }
+        enum TransactionAttributeUsage attr_usage = (enum TransactionAttributeUsage) tx_value;
         switch (attr_usage) {
             case CONTRACT_HASH:
             case VOTE:
@@ -656,20 +713,24 @@ unsigned char display_tx_desc() {
             case HASH13:
             case HASH14:
             case HASH15:
-                skip_raw_tx(32);
+                ret = skip_raw_tx(32);
                 break;
 
             case ECDH02:
             case ECDH03:
-                skip_raw_tx(32);
+                ret = skip_raw_tx(32);
                 break;
 
             case SCRIPT:
-                skip_raw_tx(20);
+                ret = skip_raw_tx(20);
                 break;
 
             case DESCRIPTION_URL:
-                skip_raw_tx(next_raw_tx());
+                ret = next_raw_tx(&tx_value);
+                if (ret != 0) {
+                    return ret;
+                }
+                ret = skip_raw_tx(tx_value);
                 break;
 
             case DESCRIPTION:
@@ -689,23 +750,33 @@ unsigned char display_tx_desc() {
             case REMARK13:
             case REMARK14:
             case REMARK15:
-                skip_raw_tx(next_raw_tx_varbytes_num());
+                ret = next_raw_tx_varbytes_num(&tx_value);
+                if (ret != 0) {
+                    return ret;
+                }
+                ret = skip_raw_tx(tx_value);
                 break;
 
             default:
                 hashTainted = 1;
-                THROW(0x6D07);
+                ret = 0x6D07;
+        }
+        if (ret != 0) {
+            return ret;
         }
     }
 
     // Coin Reference screen.
-    unsigned char num_coin_references = next_raw_tx_varbytes_num();
+    ret = next_raw_tx_varbytes_num(&tx_value);
+    if (ret != 0) {
+        return ret;
+    }
     if (SHOW_NUM_COIN_REFERENCES) {
         if (scr_ix < MAX_TX_TEXT_SCREENS) {
             memmove(tx_desc[scr_ix][0], TXT_NUM_TXIN, sizeof(TXT_NUM_TXIN));
 
-            hex_buffer_len = min(MAX_HEX_BUFFER_LEN, sizeof(num_coin_references)) * 2;
-            to_hex(hex_buffer, &num_coin_references, hex_buffer_len);
+            hex_buffer_len = min(MAX_HEX_BUFFER_LEN, sizeof(tx_value)) * 2;
+            to_hex(hex_buffer, &tx_value, hex_buffer_len);
             memmove(tx_desc[scr_ix][1], hex_buffer, hex_buffer_len);
 
             hex_buffer_len = min(MAX_HEX_BUFFER_LEN, sizeof(raw_tx_ix)) * 2;
@@ -714,10 +785,17 @@ unsigned char display_tx_desc() {
             scr_ix++;
         }
     }
-    skip_raw_tx(num_coin_references * COIN_REFERENCES_LEN);
+    ret = skip_raw_tx(tx_value * COIN_REFERENCES_LEN);
+    if (ret != 0) {
+        return ret;
+    }
 
     // transaction output screen.
-    unsigned char num_tx_outs = next_raw_tx_varbytes_num();
+    unsigned char num_tx_outs = 0;
+    ret = next_raw_tx_varbytes_num(&num_tx_outs);
+    if (ret != 0) {
+        return ret;
+    }
     if (SHOW_NUM_TX_OUTS) {
         if (scr_ix < MAX_TX_TEXT_SCREENS) {
             memmove(tx_desc[scr_ix][0], TXT_NUM_TXOUT, sizeof(TXT_NUM_TXOUT));
@@ -759,7 +837,10 @@ unsigned char display_tx_desc() {
         next_raw_tx_arr(value, VALUE_LEN);
         next_raw_tx_arr(script_hash, SCRIPT_HASH_LEN);
         memset(address_base58, 0, sizeof(address_base58));
-        to_address(address_base58, sizeof(address_base58), script_hash);
+        ret = to_address(address_base58, sizeof(address_base58), script_hash);
+        if (ret != 0) {
+            return ret;
+        }
 
         // asset_id and value screen
         if (scr_ix < MAX_TX_TEXT_SCREENS) {
@@ -774,7 +855,10 @@ unsigned char display_tx_desc() {
             }
 
             // value, base 10.
-            to_base10_100m(tx_desc[scr_ix][1], value, MAX_TX_TEXT_WIDTH);
+            ret = to_base10_100m(tx_desc[scr_ix][1], value, MAX_TX_TEXT_WIDTH);
+            if (ret != 0) {
+                return ret;
+            }
 
 #ifdef HAVE_NBGL
             snprintf(tx_desc[scr_ix][2],
@@ -833,7 +917,7 @@ unsigned char display_tx_desc() {
 
     memmove(curr_tx_desc, tx_desc[curr_scr_ix], CURR_TX_DESC_LEN);
 
-    return 1;
+    return 0;
 }
 
 void display_no_public_key() {
@@ -863,7 +947,8 @@ void public_key_hash160(unsigned char *in, unsigned short inlen, unsigned char *
     CX_ASSERT(cx_hash_no_throw(&u.riprip.header, CX_LAST, buffer, 32, out, 20));
 }
 
-void display_public_key(const unsigned char *public_key) {
+int display_public_key(const unsigned char *public_key) {
+    int ret = -1;
 #ifdef HAVE_BAGL
     memmove(address58[0], TXT_BLANK, sizeof(TXT_BLANK));
     memmove(address58[1], TXT_BLANK, sizeof(TXT_BLANK));
@@ -893,7 +978,10 @@ void display_public_key(const unsigned char *public_key) {
     }
 
     char address_base58[ADDRESS_BASE58_LEN + 1] = {0};
-    to_address(address_base58, sizeof(address_base58), script_hash);
+    ret = to_address(address_base58, sizeof(address_base58), script_hash);
+    if (ret != 0) {
+        return ret;
+    }
 #ifdef HAVE_BAGL
     unsigned int address_base58_len_0 = 11;
     unsigned int address_base58_len_1 = 11;
@@ -907,4 +995,5 @@ void display_public_key(const unsigned char *public_key) {
 #else  // HAVE_NBGL
     strncpy(address58[0], address_base58, sizeof(address58[0]));
 #endif
+    return 0;
 }

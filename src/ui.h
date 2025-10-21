@@ -12,6 +12,13 @@
 #ifdef HAVE_BAGL
 #include "bagl.h"
 #endif
+
+#if defined(TARGET_STAX) || defined(TARGET_FLEX)
+#define ICON_APP_HOME C_icon_64px
+#elif defined(TARGET_APEX_P)
+#define ICON_APP_HOME C_icon_48px
+#endif
+
 /** the timer */
 extern int exit_timer;
 
@@ -20,9 +27,6 @@ extern int exit_timer;
 
 /** display for the timer */
 extern char timer_desc[MAX_TIMER_TEXT_WIDTH];
-
-/** length of the APDU (application protocol data unit) header. */
-#define APDU_HEADER_LENGTH 5
 
 /** offset in the APDU header which says the length of the body. */
 #define APDU_BODY_LENGTH_OFFSET 4
@@ -72,22 +76,6 @@ extern char timer_desc[MAX_TIMER_TEXT_WIDTH];
 /** max number of bytes for all text screens. */
 #define MAX_TX_DESC_LEN (MAX_TX_TEXT_SCREENS * CURR_TX_DESC_LEN)
 
-/** UI currently displayed */
-enum UI_STATE {
-    UI_INIT,
-    UI_IDLE,
-    UI_TOP_SIGN,
-    UI_TX_DESC_1,
-    UI_TX_DESC_2,
-    UI_SIGN,
-    UI_DENY,
-    UI_PUBLIC_KEY_1,
-    UI_PUBLIC_KEY_2
-};
-
-/** UI state enum */
-extern enum UI_STATE uiState;
-
 /** UI state flag */
 extern ux_state_t ux;
 
@@ -125,15 +113,12 @@ extern char curr_tx_desc[MAX_TX_TEXT_LINES][MAX_TX_TEXT_WIDTH];
 extern char address58[MAX_TX_TEXT_LINES][MAX_TX_TEXT_WIDTH];
 
 /** process a partial transaction */
-const void *sign_tx_and_send_response(void);
+int sign_tx_and_send_response(void);
 
 /** show the idle UI */
 void ui_idle(void);
 
 /** show the "Sign TX" ui, starting at the top of the Tx display */
 void ui_top_sign(void);
-
-/** return the length of the communication buffer */
-unsigned int get_apdu_buffer_length();
 
 #endif  // UI_H

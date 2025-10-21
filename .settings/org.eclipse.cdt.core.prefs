@@ -4,7 +4,7 @@ environment/project/cdt.managedbuild.config.gnu.macosx.exe.debug.1794037724/BOLO
 environment/project/cdt.managedbuild.config.gnu.macosx.exe.debug.1794037724/BOLOS_ENV/value=~/docker-shared/ledger-nano-s
 environment/project/cdt.managedbuild.config.gnu.macosx.exe.debug.1794037724/BOLOS_SDK/delimiter=\:
 environment/project/cdt.managedbuild.config.gnu.macosx.exe.debug.1794037724/BOLOS_SDK/operation=replace
-environment/project/cdt.managedbuild.config.gnu.macosx.exe.debug.1794037724/BOLOS_SDK/value=~/docker-shared/ledger-nano-s/nanos-secure-sdk
+environment/project/cdt.managedbuild.config.gnu.macosx.exe.debug.1794037724/BOLOS_SDK/value=~/docker-shared/ledger-nano-s/nanox-secure-sdk
 environment/project/cdt.managedbuild.config.gnu.macosx.exe.debug.1794037724/CWD/delimiter=\:
 environment/project/cdt.managedbuild.config.gnu.macosx.exe.debug.1794037724/CWD/operation=replace
 environment/project/cdt.managedbuild.config.gnu.macosx.exe.debug.1794037724/CWD/value=~/docker-shared/ledger-nano-s/blue-app-neo/
