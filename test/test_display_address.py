@@ -15,78 +15,50 @@
 # *  See the License for the specific language governing permissions and
 # *  limitations under the License.
 # ********************************************************************************
-from utils import get_signed_public_key_and_validate, DEFAULT_PATH, ROOT_SCREENSHOT_PATH
 from pathlib import Path
-from inspect import currentframe
-from ragger.navigator import NavInsID, NavIns
-from time import sleep
-import pytest
+
+from ragger.backend.interface import BackendInterface
+from ragger.navigator import Navigator, NavInsID, NavIns
+from ragger.firmware.touch.positions import POSITIONS
+
+from utils import get_signed_public_key_and_validate, DEFAULT_PATH
 
 
-def test_display_address(backend, firmware, navigator):
-    path = Path(currentframe().f_code.co_name)
+def test_display_address(backend: BackendInterface, navigator: Navigator,
+                         default_screenshot_path: Path,
+                         test_name: str) -> None:
+    device = backend.device
 
-    if firmware.device == "nanos":
-        pytest.skip("Nano S app does not implement address display ui.")
-    elif firmware.device == "stax" or firmware.device == "flex":
-        if firmware.device == "stax":
-            y_touch = 520
-        else:
-            y_touch = 420
-        navigator.navigate_and_compare(
-            # Use custom touch coordinates to account for warning approve
-            # button position.
-            ROOT_SCREENSHOT_PATH,
-            path,
-            [
-                NavIns(NavInsID.TOUCH,
-                       (200, y_touch)), NavInsID.CENTERED_FOOTER_TAP
-            ],
-            screen_change_before_first_instruction=False)
+    instructions = []
+    if device.touchable:
+        # Use custom touch coordinates to account for warning approve
+        # button position.
+        coord = POSITIONS["UseCaseHomeExt"][device.type]["action"]
+        instructions += [
+            NavIns(NavInsID.TOUCH, coord), NavInsID.CENTERED_FOOTER_TAP
+        ]
+        start_index = 3
     else:
-        navigator.navigate_and_compare(
-            # Use custom touch coordinates to account for warning approve
-            # button position.
-            ROOT_SCREENSHOT_PATH,
-            path,
-            [
-                NavInsID.RIGHT_CLICK,
-                NavInsID.BOTH_CLICK,
-                NavInsID.RIGHT_CLICK,
-                NavInsID.BOTH_CLICK,
-            ],
-            screen_change_before_first_instruction=False)
+        instructions += [
+            NavInsID.RIGHT_CLICK,
+            NavInsID.BOTH_CLICK,
+            NavInsID.RIGHT_CLICK,
+            NavInsID.BOTH_CLICK,
+        ]
+        start_index = 5
+
+    navigator.navigate_and_compare(
+        default_screenshot_path,
+        test_name,
+        instructions,
+        screen_change_before_first_instruction=False)
 
     # Get public key (this will update the UI to display the address)
-    get_signed_public_key_and_validate(backend, DEFAULT_PATH)[1:]
+    _ = get_signed_public_key_and_validate(backend, DEFAULT_PATH)[1:]
 
-    if firmware.device == "stax" or firmware.device == "flex":
-        if firmware.device == "stax":
-            y_touch = 520
-        else:
-            y_touch = 420
-        navigator.navigate_and_compare(
-            # Use custom touch coordinates to account for warning approve
-            # button position.
-            ROOT_SCREENSHOT_PATH,
-            path,
-            [
-                NavIns(NavInsID.TOUCH,
-                       (200, y_touch)), NavInsID.CENTERED_FOOTER_TAP
-            ],
-            screen_change_before_first_instruction=False,
-            snap_start_idx=3)
-    else:
-        navigator.navigate_and_compare(
-            # Use custom touch coordinates to account for warning approve
-            # button position.
-            ROOT_SCREENSHOT_PATH,
-            path,
-            [
-                NavInsID.RIGHT_CLICK,
-                NavInsID.BOTH_CLICK,
-                NavInsID.RIGHT_CLICK,
-                NavInsID.BOTH_CLICK,
-            ],
-            screen_change_before_first_instruction=False,
-            snap_start_idx=5)
+    navigator.navigate_and_compare(
+        default_screenshot_path,
+        test_name,
+        instructions,
+        screen_change_before_first_instruction=False,
+        snap_start_idx=start_index)

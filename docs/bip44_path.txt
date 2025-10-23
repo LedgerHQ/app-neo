@@ -3,4 +3,4 @@ participant Main Loop
 participant Get Bip44 Path
 
 Main Loop->Get Bip44 Path:Request Sent
-Get Bip44 Path-->>Main Loop:Returns BIP44_PATH (20 bytes), with suffix 0x9000, meaning success. 
+Get Bip44 Path-->>Main Loop:Returns BIP44_PATH (20 bytes), with suffix 0x9000, meaning success.
