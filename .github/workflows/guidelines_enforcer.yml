@@ -1,4 +1,4 @@
-name: Guideline enforcer
+name: Ensure compliance with Ledger guidelines
 
 on:
   workflow_dispatch:
