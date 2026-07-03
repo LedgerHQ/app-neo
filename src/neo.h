@@ -18,6 +18,6 @@ int display_tx_desc(void);
 void display_no_public_key(void);
 
 /** displays the public key, assumes length is 65. */
-int display_public_key(const unsigned char* public_key);
+int display_public_key(const unsigned char *public_key);
 
 #endif  // NEO_H
