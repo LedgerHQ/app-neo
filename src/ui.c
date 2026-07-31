@@ -177,7 +177,7 @@ void onQuitCallback(void) {
 }
 
 static void displayAddress(void) {
-    nbgl_pageInfoDescription_t info = {.centeredInfo.icon = &C_wallet_64px,
+    nbgl_pageInfoDescription_t info = {.centeredInfo.icon = &ICON_WALLET,
                                        .centeredInfo.text1 = "Address",
                                        .centeredInfo.text2 = address58[0],
                                        .centeredInfo.style = LARGE_CASE_INFO,
