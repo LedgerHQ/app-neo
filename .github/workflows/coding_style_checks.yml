@@ -21,7 +21,6 @@ jobs:
     name: Check tests linting
     uses: LedgerHQ/ledger-app-workflows/.github/workflows/reusable_python_checks.yml@v1
     with:
-      run_linter: yapf
       run_type_check: true
       src_directory: .
       req_directory: test
