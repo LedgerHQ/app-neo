@@ -16,27 +16,28 @@
 # *  limitations under the License.
 # ********************************************************************************
 from pathlib import Path
+from typing import Any, cast
 
 from ragger.backend.interface import BackendInterface
-from ragger.navigator import Navigator, NavInsID, NavIns
 from ragger.firmware.touch.positions import POSITIONS
+from ragger.navigator import Navigator, NavIns, NavInsID
+from utils import DEFAULT_PATH, get_signed_public_key_and_validate
 
-from utils import get_signed_public_key_and_validate, DEFAULT_PATH
 
-
-def test_display_address(backend: BackendInterface, navigator: Navigator,
-                         default_screenshot_path: Path,
-                         test_name: str) -> None:
+def test_display_address(
+    backend: BackendInterface,
+    navigator: Navigator,
+    default_screenshot_path: Path,
+    test_name: str,
+) -> None:
     device = backend.device
 
-    instructions = []
+    instructions: list[NavIns | NavInsID] = []
     if device.touchable:
         # Use custom touch coordinates to account for warning approve
         # button position.
-        coord = POSITIONS["UseCaseHomeExt"][device.type]["action"]
-        instructions += [
-            NavIns(NavInsID.TOUCH, coord), NavInsID.CENTERED_FOOTER_TAP
-        ]
+        coord = cast(Any, POSITIONS["UseCaseHomeExt"])[device.type]["action"]
+        instructions += [NavIns(NavInsID.TOUCH, coord), NavInsID.CENTERED_FOOTER_TAP]
         start_index = 3
     else:
         instructions += [
@@ -51,7 +52,8 @@ def test_display_address(backend: BackendInterface, navigator: Navigator,
         default_screenshot_path,
         test_name,
         instructions,
-        screen_change_before_first_instruction=False)
+        screen_change_before_first_instruction=False,
+    )
 
     # Get public key (this will update the UI to display the address)
     _ = get_signed_public_key_and_validate(backend, DEFAULT_PATH)[1:]
@@ -61,4 +63,5 @@ def test_display_address(backend: BackendInterface, navigator: Navigator,
         test_name,
         instructions,
         screen_change_before_first_instruction=False,
-        snap_start_idx=start_index)
+        snap_start_idx=start_index,
+    )
