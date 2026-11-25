@@ -104,6 +104,8 @@ int apdu_dispatcher(const command_t *cmd) {
                 // parse the transaction into human readable text.
                 ret = display_tx_desc();
                 if (ret != 0) {
+                    hashTainted = 1;
+                    ret = io_send_sw(ret);
                     break;
                 }
 

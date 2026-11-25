@@ -670,7 +670,8 @@ int display_tx_desc() {
     }
 
     //  attributes screen.
-    ret = next_raw_tx_varbytes_num(&tx_value);
+    uint8_t num_attributes = 0;
+    ret = next_raw_tx_varbytes_num(&num_attributes);
     if (ret != 0) {
         return ret;
     }
@@ -678,8 +679,8 @@ int display_tx_desc() {
         if (scr_ix < MAX_TX_TEXT_SCREENS) {
             memmove(tx_desc[scr_ix][0], TXT_NUM_ATTR, sizeof(TXT_NUM_ATTR));
 
-            hex_buffer_len = min(MAX_HEX_BUFFER_LEN, sizeof(tx_value)) * 2;
-            to_hex(hex_buffer, &tx_value, hex_buffer_len);
+            hex_buffer_len = min(MAX_HEX_BUFFER_LEN, sizeof(num_attributes)) * 2;
+            to_hex(hex_buffer, &num_attributes, hex_buffer_len);
             memmove(tx_desc[scr_ix][1], hex_buffer, hex_buffer_len);
 
             hex_buffer_len = min(MAX_HEX_BUFFER_LEN, sizeof(raw_tx_ix)) * 2;
@@ -689,7 +690,7 @@ int display_tx_desc() {
         }
     }
 
-    for (int attr_ix = 0; attr_ix < tx_value; attr_ix++) {
+    for (int attr_ix = 0; attr_ix < num_attributes; attr_ix++) {
         ret = next_raw_tx(&tx_value);
         if (ret != 0) {
             return ret;
